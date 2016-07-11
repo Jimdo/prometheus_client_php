@@ -176,6 +176,6 @@ EOF
 
     private function newRedisAdapter()
     {
-        return new Redis(array('host' => REDIS_HOST));
+        return new Redis(array('host' => '192.168.59.100'));
     }
 }

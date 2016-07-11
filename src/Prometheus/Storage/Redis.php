@@ -32,6 +32,8 @@ class Redis implements Adapter
     private $redis;
     private $metricTypes;
 
+    const PROMETHEUS_METRIC_METADATA_SUFFIX = '_METADATA';
+
     public function __construct(array $options = array())
     {
         // with php 5.3 we cannot initialize the options directly on the field definition
@@ -128,7 +130,7 @@ class Redis implements Adapter
             }
             array_multisort($sampleResponses);
 
-            $metricResponse = $this->redis->hGetAll($metricKey);
+            $metricResponse = $this->redis->hGetAll($metricKey . self::PROMETHEUS_METRIC_METADATA_SUFFIX);
             $metrics[] = array(
                 'name' => $metricResponse['name'],
                 'help' => $metricResponse['help'],
@@ -217,11 +219,14 @@ class Redis implements Adapter
      */
     private function storeMetricFamilyMetadata(Collector $metric)
     {
-        $metricKey = self::PROMETHEUS_PREFIX . $metric->getType() . $metric->getKey();
-        $this->redis->hSet($metricKey, 'name', $metric->getName());
-        $this->redis->hSet($metricKey, 'help', $metric->getHelp());
-        $this->redis->hSet($metricKey, 'type', $metric->getType());
-        $this->redis->hSet($metricKey, 'labelNames', serialize($metric->getLabelNames()));
+        $metricKey = self::PROMETHEUS_PREFIX . $metric->getType() . $metric->getKey() . self::PROMETHEUS_METRIC_METADATA_SUFFIX;
+        $data = array(
+            'name' => $metric->getName(),
+            'help' => $metric->getHelp(),
+            'type' => $metric->getType(),
+            'labelNames' => serialize($metric->getLabelNames()),
+        );
+        $this->redis->hMset($metricKey, $data);
 
         $this->redis->sAdd(
             self::PROMETHEUS_PREFIX . $metric->getType() . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
