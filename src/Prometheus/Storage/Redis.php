@@ -40,7 +40,10 @@ class Redis implements Adapter
         }
 
         $this->options = array_merge(self::$defaultOptions, $options);
-        $this->redis = new \Redis();
+
+        if(isset($this->options['redis']) && $this->options['redis'] instanceof \Redis) {
+            $this->redis = $this->options['redis'];
+        }
     }
 
     /**
@@ -80,7 +83,13 @@ class Redis implements Adapter
      */
     private function openConnection()
     {
+        if($this->redis != null) {
+            return;
+        }
+
         try {
+            $this->redis = new \Redis();
+
             if ($this->options['persistent_connections']) {
                 @$this->redis->pconnect($this->options['host'], $this->options['port'], $this->options['timeout']);
             } else {
