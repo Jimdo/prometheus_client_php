@@ -4,6 +4,7 @@
 namespace Test\Prometheus\APC;
 
 use Prometheus\Storage\APC;
+use Prometheus\Storage\APCU;
 use Test\Prometheus\AbstractHistogramTest;
 
 /**
