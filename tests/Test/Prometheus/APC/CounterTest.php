@@ -15,10 +15,11 @@ class CounterTest extends AbstractCounterTest
 
     public function configureAdapter()
     {
-        if(function_exists('apcu_fetch'))
+        if (function_exists('apcu_fetch')) {
             $this->adapter = new APCU();
-        else
+        } else {
             $this->adapter = new APC();
+        }
         $this->adapter->flushAPC();
     }
 }
