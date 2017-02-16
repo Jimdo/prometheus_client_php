@@ -1,10 +1,10 @@
 <?php
 
-
 namespace Prometheus\Storage;
 
-
 use Prometheus\MetricFamilySamples;
+
+if (extension_loaded('apcu') || extension_loaded('apc')) {
 
 class APC implements Adapter
 {
@@ -290,3 +290,5 @@ class APC implements Adapter
         });
     }
 }
+
+} // End extension_loaded check
