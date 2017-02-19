@@ -9,8 +9,6 @@ use Prometheus\Gauge;
 use Prometheus\Histogram;
 use Prometheus\MetricFamilySamples;
 
-if (extension_loaded('redis')) {
-
 class Redis implements Adapter
 {
     const PROMETHEUS_PREFIX = 'PROMETHEUS_';
@@ -343,4 +341,3 @@ LUA
 
 }
 
-} // End extension_loaded check

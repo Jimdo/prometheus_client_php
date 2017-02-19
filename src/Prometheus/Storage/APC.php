@@ -4,8 +4,6 @@ namespace Prometheus\Storage;
 
 use Prometheus\MetricFamilySamples;
 
-if (extension_loaded('apcu') || extension_loaded('apc')) {
-
 class APC implements Adapter
 {
     const PROMETHEUS_PREFIX = 'prom';
@@ -291,4 +289,3 @@ class APC implements Adapter
     }
 }
 
-} // End extension_loaded check
