@@ -18,14 +18,16 @@ While the former needs a separate binary running, the latter just needs the [APC
 
 A simple counter:
 ```php
-\Prometheus\CollectorRegistry::getDefault()
+$adapter = new Prometheus\Storage\APC();
+$registry = (new CollectorRegistry($adapter))
     ->getOrRegisterCounter('', 'some_quick_counter', 'just a quick measurement')
     ->inc();
 ```
 
 Write some enhanced metrics:
 ```php
-$registry = \Prometheus\CollectorRegistry::getDefault();
+$adapter = new Prometheus\Storage\APC();
+$registry = new CollectorRegistry($adapter);
 
 $counter = $registry->getOrRegisterCounter('test', 'some_counter', 'it increases', ['type']);
 $counter->incBy(3, ['blue']);
@@ -39,7 +41,8 @@ $histogram->observe(3.5, ['blue']);
 
 Manually register and retrieve metrics (these steps are combined in the `getOrRegister...` methods):
 ```php
-$registry = \Prometheus\CollectorRegistry::getDefault();
+$adapter = new Prometheus\Storage\APC();
+$registry = new CollectorRegistry($adapter);
 
 $counterA = $registry->registerCounter('test', 'some_counter', 'it increases', ['type']);
 $counterA->incBy(3, ['blue']);
@@ -51,8 +54,8 @@ $counterB->incBy(2, ['red']);
 
 Expose the metrics:
 ```php
-$registry = \Prometheus\CollectorRegistry::getDefault();
-$registry = CollectorRegistry::getDefault();
+$adapter = new Prometheus\Storage\APC();
+$registry = new CollectorRegistry($adapter);
 
 $renderer = new RenderTextFormat();
 $result = $renderer->render($registry->getMetricFamilySamples());

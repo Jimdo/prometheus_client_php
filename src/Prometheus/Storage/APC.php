@@ -1,8 +1,6 @@
 <?php
 
-
 namespace Prometheus\Storage;
-
 
 use Prometheus\MetricFamilySamples;
 
@@ -271,7 +269,7 @@ class APC implements Adapter
      */
     private function toInteger($val)
     {
-        return unpack('Q', pack('d', $val))[1];
+        return intval($val);
     }
 
     /**
@@ -280,7 +278,7 @@ class APC implements Adapter
      */
     private function fromInteger($val)
     {
-        return unpack('d', pack('Q', $val))[1];
+        return intval($val);
     }
 
     private function sortSamples(array &$samples)
@@ -290,3 +288,4 @@ class APC implements Adapter
         });
     }
 }
+
