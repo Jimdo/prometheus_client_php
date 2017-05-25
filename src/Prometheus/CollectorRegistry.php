@@ -134,7 +134,7 @@ class CollectorRegistry
             $help,
             $labels
         );
-        return $this->counters[self::metricIdentifier($namespace, $name)];
+        return $this->counters[$metricIdentifier];
     }
 
     /**
@@ -149,7 +149,7 @@ class CollectorRegistry
         if (!isset($this->counters[$metricIdentifier])) {
             throw new MetricNotFoundException("Metric not found:" . $metricIdentifier);
         }
-        return $this->counters[self::metricIdentifier($namespace, $name)];
+        return $this->counters[$metricIdentifier];
     }
 
     /**
@@ -207,7 +207,7 @@ class CollectorRegistry
         if (!isset($this->histograms[$metricIdentifier])) {
             throw new MetricNotFoundException("Metric not found:" . $metricIdentifier);
         }
-        return $this->histograms[self::metricIdentifier($namespace, $name)];
+        return $this->histograms[$metricIdentifier];
     }
 
     /**
