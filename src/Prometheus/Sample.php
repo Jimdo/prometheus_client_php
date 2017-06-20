@@ -43,7 +43,7 @@ class Sample
     }
 
     /**
-     * @return int|double
+     * @return int|float
      */
     public function getValue()
     {

@@ -166,7 +166,7 @@ abstract class AbstractHistogramTest extends PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function itShouldObserveValuesOfTypeDouble()
+    public function itShouldObserveValuesOfTypeFloat()
     {
         $histogram = new Histogram(
             $this->adapter,
