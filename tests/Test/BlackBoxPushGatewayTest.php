@@ -33,7 +33,7 @@ test_some_counter{instance="foo",job="my_job",type="blue"} 6',
             $metrics
         );
 
-        $pushGateway->delete('my_job', array('instance' => 'foo'));
+        $pushGateway->delete($registry,'my_job', array('instance' => 'foo'));
 
         $httpClient = new Client();
         $metrics = $httpClient->get("http://pushgateway:9091/metrics")->getBody()->getContents();

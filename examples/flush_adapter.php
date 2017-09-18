@@ -8,6 +8,11 @@ if ($adapter === 'redis') {
 
     $redisAdapter = new Prometheus\Storage\Redis(array('host' => REDIS_HOST));
     $redisAdapter->flushRedis();
+} elseif ($adapter === 'predis') {
+    $adapter = new Prometheus\Storage\Predis([
+        'host' => isset($_SERVER['REDIS_HOST']) ? $_SERVER['REDIS_HOST'] : '127.0.0.1'
+    ]);
+    $adapter->flushRedis();
 } elseif ($adapter === 'apc') {
     $apcAdapter = new Prometheus\Storage\APC();
     $apcAdapter->flushAPC();
