@@ -13,33 +13,16 @@ class Predis implements Adapter
 {
     const PROMETHEUS_METRIC_KEYS_SUFFIX = '_METRIC_KEYS';
 
-    private static $defaultOptions = [
-        'host' => '127.0.0.1',
-        'port' => 6379,
-        'timeout' => 0.1,
-        'read_timeout' => 10,
-        'persistent_connections' => false,
-    ];
-
     private static $prefix = 'PROMETHEUS_';
 
-    private $options;
     /**
      * @var Client
      */
     private $predis;
 
-    public function __construct(array $options = array())
+    public function __construct(Client $predis)
     {
-        $this->options = array_merge(self::$defaultOptions, $options);
-    }
-
-    /**
-     * @param array $options
-     */
-    public static function setDefaultOptions(array $options)
-    {
-        self::$defaultOptions = array_merge(self::$defaultOptions, $options);
+        $this->predis = $predis;
     }
 
     public static function setPrefix($prefix)
@@ -49,7 +32,6 @@ class Predis implements Adapter
 
     public function flushRedis()
     {
-        $this->openConnection();
         $this->predis->flushall();
     }
 
@@ -59,7 +41,6 @@ class Predis implements Adapter
      */
     public function collect()
     {
-        $this->openConnection();
         $metrics = $this->collectHistograms();
         $metrics = array_merge($metrics, $this->collectGauges());
         $metrics = array_merge($metrics, $this->collectCounters());
@@ -71,30 +52,8 @@ class Predis implements Adapter
         );
     }
 
-    /**
-     * @throws StorageException
-     */
-    private function openConnection()
-    {
-        try {
-
-            $this->predis = new Client([
-                'scheme' => 'tcp',
-                'host'   => $this->options['host'],
-                'port'   => $this->options['port'],
-                'timeout' => $this->options['timeout'],
-                'read_write_timeout' => $this->options['read_timeout'],
-                'persistent' => $this->options['persistent_connections'],
-            ]);
-
-        } catch (\RedisException $e) {
-            throw new StorageException("Can't connect to Redis server", 0, $e);
-        }
-    }
-
     public function updateHistogram(array $data)
     {
-        $this->openConnection();
         $bucketToIncrease = '+Inf';
         foreach ($data['buckets'] as $bucket) {
             if ($data['value'] <= $bucket) {
@@ -105,6 +64,7 @@ class Predis implements Adapter
         $metaData = $data;
         unset($metaData['value']);
         unset($metaData['labelValues']);
+
         $this->predis->eval(<<<LUA
 local increment = redis.call('hIncrByFloat', KEYS[1], KEYS[2], ARGV[1])
 redis.call('hIncrBy', KEYS[1], KEYS[3], 1)
@@ -126,7 +86,6 @@ LUA
 
     public function updateGauge(array $data)
     {
-        $this->openConnection();
         $metaData = $data;
         unset($metaData['value']);
         unset($metaData['labelValues']);
@@ -159,7 +118,6 @@ LUA
 
     public function updateCounter(array $data)
     {
-        $this->openConnection();
         $metaData = $data;
         unset($metaData['value']);
         unset($metaData['labelValues']);
@@ -219,22 +177,16 @@ LUA
                 $acc = 0;
                 foreach ($histogram['buckets'] as $bucket) {
                     $bucketKey = json_encode(array('b' => $bucket, 'labelValues' => $labelValues));
-                    if (!isset($raw[$bucketKey])) {
-                        $histogram['samples'][] = array(
-                            'name' => $histogram['name'] . '_bucket',
-                            'labelNames' => array('le'),
-                            'labelValues' => array_merge($labelValues, array($bucket)),
-                            'value' => $acc
-                        );
-                    } else {
+                    if (isset($raw[$bucketKey])) {
                         $acc += $raw[$bucketKey];
-                        $histogram['samples'][] = array(
-                            'name' => $histogram['name'] . '_bucket',
-                            'labelNames' => array('le'),
-                            'labelValues' => array_merge($labelValues, array($bucket)),
-                            'value' => $acc
-                        );
                     }
+
+                    $histogram['samples'][] = array(
+                        'name' => $histogram['name'] . '_bucket',
+                        'labelNames' => array('le'),
+                        'labelValues' => array_merge($labelValues, array($bucket)),
+                        'value' => $acc
+                    );
                 }
 
                 // Add the count

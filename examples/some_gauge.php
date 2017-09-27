@@ -14,9 +14,9 @@ if ($adapter === 'redis') {
     Redis::setDefaultOptions(array('host' => isset($_SERVER['REDIS_HOST']) ? $_SERVER['REDIS_HOST'] : '127.0.0.1'));
     $adapter = new Prometheus\Storage\Redis();
 } elseif ($adapter === 'predis') {
-    $adapter = new Prometheus\Storage\Predis([
-        'host' => isset($_SERVER['REDIS_HOST']) ? $_SERVER['REDIS_HOST'] : '127.0.0.1'
-    ]);
+    $adapter = new Prometheus\Storage\Predis(
+        new \Predis\Client(['host' => isset($_SERVER['REDIS_HOST']) ? $_SERVER['REDIS_HOST'] : '127.0.0.1'])
+    );
 } elseif ($adapter === 'apc') {
     $adapter = new Prometheus\Storage\APC();
 } elseif ($adapter === 'in-memory') {
