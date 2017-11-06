@@ -123,6 +123,78 @@ abstract class AbstractCounterTest extends PHPUnit_Framework_TestCase
 
     /**
      * @test
+     */
+    public function itShouldResetWithoutLabels() {
+        $counter = new Counter($this->adapter, 'test', 'some_metric', 'this is for testing');
+        $counter->inc();
+        $counter->incBy(125);
+        $counter->reset();
+        $this->assertThat(
+            $this->adapter->collect(),
+            $this->equalTo(
+                array(
+                    new MetricFamilySamples(
+                        array(
+                            'type' => Counter::TYPE,
+                            'help' => 'this is for testing',
+                            'name' => 'test_some_metric',
+                            'labelNames' => array(),
+                            'samples' => array(
+                                array(
+                                    'labelValues' => array(),
+                                    'value' => 0,
+                                    'name' => 'test_some_metric',
+                                    'labelNames' => array()
+                                ),
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function itShouldResetWithLabels() {
+        $counter = new Counter($this->adapter, 'test', 'some_metric', 'this is for testing', array('foo', 'bar'));
+        $counter->incBy(10, array('foo1', 'bar1'));
+        $counter->incBy(20, array('foo2', 'bar2'));
+        $counter->reset(array('foo1', 'bar1'));
+        $this->assertThat(
+            $this->adapter->collect(),
+            $this->equalTo(
+                array(
+                    new MetricFamilySamples(
+                        array(
+                            'type' => Counter::TYPE,
+                            'help' => 'this is for testing',
+                            'name' => 'test_some_metric',
+                            'labelNames' => array('foo', 'bar'),
+                            'samples' => array(
+                                array(
+                                    'labelValues' => array('foo1', 'bar1'),
+                                    'value' => 0,
+                                    'name' => 'test_some_metric',
+                                    'labelNames' => array()
+                                ),
+                                array(
+                                    'labelValues' => array('foo2', 'bar2'),
+                                    'value' => 20,
+                                    'name' => 'test_some_metric',
+                                    'labelNames' => array()
+                                ),
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    /**
+     * @test
      * @expectedException \InvalidArgumentException
      */
     public function itShouldRejectInvalidMetricsNames()

@@ -76,11 +76,16 @@ class APC implements Adapter
 
     public function updateCounter(array $data)
     {
-        $new = apc_add($this->valueKey($data), 0);
+        $valueKey = $this->valueKey($data);
+        $new = apc_add($valueKey, 0);
         if ($new) {
             apc_store($this->metaKey($data), json_encode($this->metaData($data)));
         }
-        apc_inc($this->valueKey($data), $data['value']);
+        if ($data['command'] == Adapter::COMMAND_SET) {
+            apc_store($valueKey, 0);
+        } else {
+            apc_inc($valueKey, $data['value']);
+        }
     }
 
     public function flushAPC()
