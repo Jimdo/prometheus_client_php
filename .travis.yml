@@ -1,6 +1,7 @@
 language: php
 php:
   - 5.6
+  - 7.0
 
 services:
   - redis-server
@@ -8,7 +9,8 @@ services:
 before_script:
   - echo "apc.enabled = 1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
   - echo "apc.enable_cli = 1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
-  - echo "extension = apcu.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+  - if [[ $TRAVIS_PHP_VERSION = 5.* ]]; then echo yes | pecl install -f apcu-4.0.11; fi
+  - if [[ $TRAVIS_PHP_VERSION = 7.* ]]; then echo yes | pecl install -f apcu-5.1.5; fi
   - echo "extension = redis.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
   - composer self-update
   - composer install --no-interaction --prefer-source --dev
