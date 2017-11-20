@@ -1,20 +1,20 @@
 <?php
 
 
-namespace Test\Prometheus\APC;
+namespace Test\Prometheus\APCu;
 
-use Prometheus\Storage\APC;
+use Prometheus\Storage\APCu;
 use Test\Prometheus\AbstractCollectorRegistryTest;
 
 /**
- * @requires extension apc
+ * @requires extension apcu
+ * @requires function APCUIterator::__construct
  */
 class CollectorRegistryTest extends AbstractCollectorRegistryTest
 {
-
     public function configureAdapter()
     {
-        $this->adapter = new APC();
+        $this->adapter = new APCu();
         $this->adapter->flushAPC();
     }
 }
