@@ -12,6 +12,11 @@ interface Adapter
     const COMMAND_SET = 3;
 
     /**
+     * @return boolean
+     */
+    public function initialized();
+
+    /**
      * @return MetricFamilySamples[]
      */
     public function collect();

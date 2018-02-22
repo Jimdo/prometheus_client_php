@@ -50,6 +50,14 @@ class CollectorRegistry
     }
 
     /**
+     * @return boolean
+     */
+    public function initialized()
+    {
+        return $this->storageAdapter->initialized();
+    }
+
+    /**
      * @return MetricFamilySamples[]
      */
     public function getMetricFamilySamples()

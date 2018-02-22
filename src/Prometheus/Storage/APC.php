@@ -11,6 +11,14 @@ class APC implements Adapter
     const PROMETHEUS_PREFIX = 'prom';
 
     /**
+     * @return boolean
+     */
+    public function initialized()
+    {
+        return !apc_add(self::PROMETHEUS_PREFIX . ":initialized", true);
+    }
+
+    /**
      * @return MetricFamilySamples[]
      */
     public function collect()

@@ -19,6 +19,11 @@ class Redis implements Adapter
     private $options;
     private $redis;
 
+    public function initialized()
+    {
+        return $this->redis->getSet(self::$prefix . 'INITIALIZED', 1);
+    }
+
     public function __construct(array $options = array())
     {
         // with php 5.3 we cannot initialize the options directly on the field definition
