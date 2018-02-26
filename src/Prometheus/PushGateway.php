@@ -49,9 +49,9 @@ class PushGateway
      * @param $job
      * @param $groupingKey
      */
-    public function delete($job, $groupingKey = null)
+    public function delete(CollectorRegistry $collectorRegistry, $job, $groupingKey = null)
     {
-        $this->doRequest(null, $job, $groupingKey, 'delete');
+        $this->doRequest($collectorRegistry, $job, $groupingKey, 'delete');
     }
 
     /**

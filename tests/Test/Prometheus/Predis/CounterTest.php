@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Prometheus\Redis;
+namespace Test\Prometheus\Predis;
 
 use Test\Prometheus\AbstractCounterTest;
 
