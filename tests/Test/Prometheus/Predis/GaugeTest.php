@@ -1,9 +1,7 @@
 <?php
 
-
 namespace Test\Prometheus\Predis;
 
-use Prometheus\Storage\Predis;
 use Test\Prometheus\AbstractGaugeTest;
 
 /**
@@ -11,10 +9,5 @@ use Test\Prometheus\AbstractGaugeTest;
  */
 class GaugeTest extends AbstractGaugeTest
 {
-
-    public function configureAdapter()
-    {
-        $this->adapter = new Predis(new \Predis\Client(['host' => REDIS_HOST]));
-        $this->adapter->flushRedis();
-    }
+    use InitializationTrait;
 }

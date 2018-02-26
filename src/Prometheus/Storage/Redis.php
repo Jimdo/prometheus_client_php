@@ -3,6 +3,7 @@
 namespace Prometheus\Storage;
 
 
+use Predis\Client;
 use Prometheus\Counter;
 use Prometheus\Exception\StorageException;
 use Prometheus\Gauge;
@@ -13,55 +14,40 @@ class Redis implements Adapter
 {
     const PROMETHEUS_METRIC_KEYS_SUFFIX = '_METRIC_KEYS';
 
-    private static $defaultOptions = array();
-    private static $prefix = 'PROMETHEUS_';
+    private $prefix = 'PROMETHEUS_';
 
-    private $options;
     private $redis;
 
-    public function __construct(array $options = array())
+    /**
+     * Redis constructor.
+     * @param RedisAdapter $redis
+     * @param string $prefix
+     */
+    public function __construct(RedisAdapter $redis, $prefix = 'PROMETHEUS_')
     {
-        // with php 5.3 we cannot initialize the options directly on the field definition
-        // so we initialize them here for now
-        if (!isset(self::$defaultOptions['host'])) {
-            self::$defaultOptions['host'] = '127.0.0.1';
-        }
-        if (!isset(self::$defaultOptions['port'])) {
-            self::$defaultOptions['port'] = 6379;
-        }
-        if (!isset(self::$defaultOptions['timeout'])) {
-            self::$defaultOptions['timeout'] = 0.1; // in seconds
-        }
-        if (!isset(self::$defaultOptions['read_timeout'])) {
-            self::$defaultOptions['read_timeout'] = 10; // in seconds
-        }
-        if (!isset(self::$defaultOptions['persistent_connections'])) {
-            self::$defaultOptions['persistent_connections'] = false;
-        }
-        if (!isset(self::$defaultOptions['password'])) {
-            self::$defaultOptions['password'] = null;
-        }
-
-        $this->options = array_merge(self::$defaultOptions, $options);
-        $this->redis = new \Redis();
+        $this->redis = $redis;
     }
 
     /**
-     * @param array $options
+     * @param string $prefix
      */
-    public static function setDefaultOptions(array $options)
+    public function setPrefix($prefix)
     {
-        self::$defaultOptions = array_merge(self::$defaultOptions, $options);
+        $this->prefix = $prefix;
     }
 
-    public static function setPrefix($prefix)
+    public static function usingRedis(\Redis $redis, array $options)
     {
-        self::$prefix = $prefix;
+        return new self(RedisAdapter::forRedis($redis, $options));
+    }
+
+    public static function usingPredis(Client $redis)
+    {
+        return new self(RedisAdapter::forPredis($redis));
     }
 
     public function flushRedis()
     {
-        $this->openConnection();
         $this->redis->flushAll();
     }
 
@@ -71,7 +57,6 @@ class Redis implements Adapter
      */
     public function collect()
     {
-        $this->openConnection();
         $metrics = $this->collectHistograms();
         $metrics = array_merge($metrics, $this->collectGauges());
         $metrics = array_merge($metrics, $this->collectCounters());
@@ -83,29 +68,8 @@ class Redis implements Adapter
         );
     }
 
-    /**
-     * @throws StorageException
-     */
-    private function openConnection()
-    {
-        try {
-            if ($this->options['persistent_connections']) {
-                @$this->redis->pconnect($this->options['host'], $this->options['port'], $this->options['timeout']);
-            } else {
-                @$this->redis->connect($this->options['host'], $this->options['port'], $this->options['timeout']);
-            }
-            if ($this->options['password']) {
-                $this->redis->auth($this->options['password']);
-            }
-            $this->redis->setOption(\Redis::OPT_READ_TIMEOUT, $this->options['read_timeout']);
-        } catch (\RedisException $e) {
-            throw new StorageException("Can't connect to Redis server", 0, $e);
-        }
-    }
-
     public function updateHistogram(array $data)
     {
-        $this->openConnection();
         $bucketToIncrease = '+Inf';
         foreach ($data['buckets'] as $bucket) {
             if ($data['value'] <= $bucket) {
@@ -116,7 +80,7 @@ class Redis implements Adapter
         $metaData = $data;
         unset($metaData['value']);
         unset($metaData['labelValues']);
-        $this->redis->eval(<<<LUA
+        $this->redis->evaluate(<<<LUA
 local increment = redis.call('hIncrByFloat', KEYS[1], KEYS[2], ARGV[1])
 redis.call('hIncrBy', KEYS[1], KEYS[3], 1)
 if increment == ARGV[1] then
@@ -129,7 +93,7 @@ LUA
                 $this->toMetricKey($data),
                 json_encode(array('b' => 'sum', 'labelValues' => $data['labelValues'])),
                 json_encode(array('b' => $bucketToIncrease, 'labelValues' => $data['labelValues'])),
-                self::$prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+                $this->prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
                 $data['value'],
                 json_encode($metaData),
             ),
@@ -139,12 +103,12 @@ LUA
 
     public function updateGauge(array $data)
     {
-        $this->openConnection();
+
         $metaData = $data;
         unset($metaData['value']);
         unset($metaData['labelValues']);
         unset($metaData['command']);
-        $this->redis->eval(<<<LUA
+        $this->redis->evaluate(<<<LUA
 local result = redis.call(KEYS[2], KEYS[1], KEYS[4], ARGV[1])
 
 if KEYS[2] == 'hSet' then
@@ -163,7 +127,7 @@ LUA
             array(
                 $this->toMetricKey($data),
                 $this->getRedisCommand($data['command']),
-                self::$prefix . Gauge::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+                $this->prefix . Gauge::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
                 json_encode($data['labelValues']),
                 $data['value'],
                 json_encode($metaData),
@@ -174,12 +138,11 @@ LUA
 
     public function updateCounter(array $data)
     {
-        $this->openConnection();
         $metaData = $data;
         unset($metaData['value']);
         unset($metaData['labelValues']);
         unset($metaData['command']);
-        $result = $this->redis->eval(<<<LUA
+        $result = $this->redis->evaluate(<<<LUA
 local result = redis.call(KEYS[2], KEYS[1], KEYS[4], ARGV[1])
 if result == tonumber(ARGV[1]) then
     redis.call('hMSet', KEYS[1], '__meta', ARGV[2])
@@ -191,7 +154,7 @@ LUA
             array(
                 $this->toMetricKey($data),
                 $this->getRedisCommand($data['command']),
-                self::$prefix . Counter::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+                $this->prefix . Counter::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
                 json_encode($data['labelValues']),
                 $data['value'],
                 json_encode($metaData),
@@ -203,7 +166,7 @@ LUA
 
     private function collectHistograms()
     {
-        $keys = $this->redis->sMembers(self::$prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX);
+        $keys = $this->redis->sMembers($this->prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX);
         sort($keys);
         $histograms = array();
         foreach ($keys as $key) {
@@ -277,7 +240,7 @@ LUA
 
     private function collectGauges()
     {
-        $keys = $this->redis->sMembers(self::$prefix . Gauge::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX);
+        $keys = $this->redis->sMembers($this->prefix . Gauge::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX);
         sort($keys);
         $gauges = array();
         foreach ($keys as $key) {
@@ -303,7 +266,7 @@ LUA
 
     private function collectCounters()
     {
-        $keys = $this->redis->sMembers(self::$prefix . Counter::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX);
+        $keys = $this->redis->sMembers($this->prefix . Counter::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX);
         sort($keys);
         $counters = array();
         foreach ($keys as $key) {
@@ -347,7 +310,6 @@ LUA
      */
     private function toMetricKey(array $data)
     {
-        return implode(':', array(self::$prefix, $data['type'], $data['name']));
+        return implode(':', array($this->prefix, $data['type'], $data['name']));
     }
-
 }

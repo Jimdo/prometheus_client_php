@@ -1,9 +1,7 @@
 <?php
 
-
 namespace Test\Prometheus\Predis;
 
-use Prometheus\Storage\Predis;
 use Test\Prometheus\AbstractCounterTest;
 
 /**
@@ -11,10 +9,5 @@ use Test\Prometheus\AbstractCounterTest;
  */
 class CounterTest extends AbstractCounterTest
 {
-
-    public function configureAdapter()
-    {
-        $this->adapter = new Predis(new \Predis\Client(['host' => REDIS_HOST]));
-        $this->adapter->flushRedis();
-    }
+    use InitializationTrait;
 }
