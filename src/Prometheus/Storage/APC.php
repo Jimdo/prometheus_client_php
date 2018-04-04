@@ -10,6 +10,7 @@ use RuntimeException;
 class APC implements Adapter
 {
     const PROMETHEUS_PREFIX = 'prom';
+    const MAX_CAS_RETRIES   = 1000000; // 1 Million maximum retries which is equivalent to 1.25 secs(approx.)
 
     /**
      * @return MetricFamilySamples[]
@@ -32,14 +33,7 @@ class APC implements Adapter
         if ($new) {
             apcu_store($this->metaKey($data), json_encode($this->metaData($data)));
         }
-
-        // Atomically increment the sum
-        // Taken from https://github.com/prometheus/client_golang/blob/66058aac3a83021948e5fb12f1f408ff556b9037/prometheus/value.go#L91
-        $done = false;
-        while (!$done) {
-            $old = apcu_fetch($sumKey);
-            $done = apcu_cas($sumKey, $old, $this->toInteger($this->fromInteger($old) + $data['value']));
-        }
+        $this->apcuFetchAndIncr($sumKey, $data['value']);
 
         // Figure out in which bucket the observation belongs
         $bucketToIncrease = '+Inf';
@@ -66,12 +60,7 @@ class APC implements Adapter
             if ($new) {
                 apcu_store($this->metaKey($data), json_encode($this->metaData($data)));
             }
-            // Taken from https://github.com/prometheus/client_golang/blob/66058aac3a83021948e5fb12f1f408ff556b9037/prometheus/value.go#L91
-            $done = false;
-            while (!$done) {
-                $old = apcu_fetch($valueKey);
-                $done = apcu_cas($valueKey, $old, $this->toInteger($this->fromInteger($old) + $data['value']));
-            }
+            $this->apcuFetchAndIncr($valueKey, $data['value']);
         }
     }
 
@@ -334,5 +323,17 @@ class APC implements Adapter
             throw new RuntimeException(json_last_error_msg());
         }
         return $decodedValues;
+    }
+
+    private function apcuFetchAndIncr($key, $incr)
+    {
+        // Atomically increments key
+        // Taken from https://github.com/prometheus/client_golang/blob/66058aac3a83021948e5fb12f1f408ff556b9037/prometheus/value.go#L91
+        $done = false;
+        $tries = static::MAX_CAS_RETRIES;
+        while (!$done && $tries--) {
+            $old  = apcu_fetch($key);
+            $done = apcu_cas($key, $old, $this->toInteger($this->fromInteger($old) + $incr));
+        }
     }
 }
