@@ -84,6 +84,14 @@ class APC implements Adapter
         apcu_inc($this->valueKey($data), $data['value']);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function flush()
+    {
+        $this->flushAPC();
+    }
+
     public function flushAPC()
     {
        apcu_clear_cache();

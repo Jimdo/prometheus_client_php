@@ -59,6 +59,14 @@ class Redis implements Adapter
         self::$prefix = $prefix;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function flush()
+    {
+        $this->flushRedis();
+    }
+
     public function flushRedis()
     {
         $this->openConnection();

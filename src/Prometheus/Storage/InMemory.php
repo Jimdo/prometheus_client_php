@@ -24,6 +24,14 @@ class InMemory implements Adapter
         return $metrics;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function flush()
+    {
+        $this->flushMemory();
+    }
+
     public function flushMemory()
     {
         $this->counters = [];
