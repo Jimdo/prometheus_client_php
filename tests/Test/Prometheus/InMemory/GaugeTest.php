@@ -15,6 +15,6 @@ class GaugeTest extends AbstractGaugeTest
     public function configureAdapter()
     {
         $this->adapter = new InMemory();
-        $this->adapter->flushMemory();
+        $this->adapter->flush();
     }
 }
