@@ -19,6 +19,7 @@ class APC implements Adapter
         $metrics = $this->collectHistograms();
         $metrics = array_merge($metrics, $this->collectGauges());
         $metrics = array_merge($metrics, $this->collectCounters());
+        $metrics = array_merge($metrics, $this->collectApcuStats());
         return $metrics;
     }
 
@@ -277,6 +278,36 @@ class APC implements Adapter
             $histograms[] = new MetricFamilySamples($data);
         }
         return $histograms;
+    }
+
+    /**
+     * Collects apcu stats and makes it available as gauge(metric type) on every scrap
+     * @return array
+     */
+    private function collectApcuStats()
+    {
+        $gauges = array();
+        $stats = apcu_cache_info(true) + apcu_sma_info(true);
+        foreach ($stats as $key => $value) {
+            $key = 'apcu_'.$key;
+            $data = array(
+                'name' => $key,
+                'help' => null,
+                'type' => 'gauge',
+                'labelNames' => array(),
+                'samples' => array(
+                    array(
+                        'name' => $key,
+                        'labelNames' => [],
+                        'labelValues' => [],
+                        'value' => $value
+                    )
+                )
+            );
+            $gauges[] = new MetricFamilySamples($data);
+        }
+
+        return $gauges;
     }
 
     /**
