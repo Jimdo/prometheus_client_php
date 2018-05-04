@@ -10,7 +10,20 @@ use RuntimeException;
 class APC implements Adapter
 {
     const PROMETHEUS_PREFIX = 'prom';
-    const MAX_CAS_RETRIES   = 1000000; // 1 Million maximum retries which is equivalent to 1.25 secs(approx.)
+
+    /**
+     * Max number of retires for CAS operation E.g. 1 Million maximum retries which is equivalent to 1.25 secs(approx.)
+     * @var int
+     */
+    protected $maxCasRetries;
+
+    /**
+     * @param array $options
+     */
+    public function __construct(array $options = array())
+    {
+        $this->maxCasRetries = isset($options['max_cas_retries']) ? $options['max_cas_retries'] : -1;
+    }
 
     /**
      * @return MetricFamilySamples[]
@@ -330,7 +343,7 @@ class APC implements Adapter
         // Atomically increments key
         // Taken from https://github.com/prometheus/client_golang/blob/66058aac3a83021948e5fb12f1f408ff556b9037/prometheus/value.go#L91
         $done = false;
-        $tries = static::MAX_CAS_RETRIES;
+        $tries = $this->maxCasRetries;
         while (!$done && $tries--) {
             $old  = apcu_fetch($key);
             $done = apcu_cas($key, $old, $this->toInteger($this->fromInteger($old) + $incr));
