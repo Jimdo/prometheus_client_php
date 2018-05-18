@@ -41,6 +41,9 @@ class Redis implements Adapter
         if (!isset(self::$defaultOptions['password'])) {
             self::$defaultOptions['password'] = null;
         }
+        if (!isset(self::$defaultOptions['index'])) {
+            self::$defaultOptions['index'] = 11;
+        }
 
         $this->options = array_merge(self::$defaultOptions, $options);
         $this->redis = new \Redis();
@@ -62,7 +65,7 @@ class Redis implements Adapter
     public function flushRedis()
     {
         $this->openConnection();
-        $this->redis->flushAll();
+        $this->redis->flushdb();
     }
 
     /**
@@ -97,6 +100,9 @@ class Redis implements Adapter
             if ($this->options['password']) {
                 $this->redis->auth($this->options['password']);
             }
+            if ($this->options['index']) {
+                $this->redis->select($this->options['index']);
+            }
             $this->redis->setOption(\Redis::OPT_READ_TIMEOUT, $this->options['read_timeout']);
         } catch (\RedisException $e) {
             throw new StorageException("Can't connect to Redis server", 0, $e);
@@ -119,7 +125,7 @@ class Redis implements Adapter
         $this->redis->eval(<<<LUA
 local increment = redis.call('hIncrByFloat', KEYS[1], KEYS[2], ARGV[1])
 redis.call('hIncrBy', KEYS[1], KEYS[3], 1)
-if increment == ARGV[1] then
+if math.abs(increment - ARGV[1]) < 0.00001 then
     redis.call('hSet', KEYS[1], '__meta', ARGV[2])
     redis.call('sAdd', KEYS[4], KEYS[1])
 end
