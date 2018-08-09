@@ -8,6 +8,7 @@ use Prometheus\CollectorRegistry;
 use Prometheus\Counter;
 use Prometheus\Gauge;
 use Prometheus\Histogram;
+use Prometheus\RenderTextFormat;
 use Prometheus\Storage\Redis;
 use Test\Prometheus\AbstractCollectorRegistryTest;
 
@@ -51,12 +52,15 @@ class CollectorRegistryTest extends AbstractCollectorRegistryTest
         $this->adapter->flushRedis();
 
         $this->assertEquals('bar', $redis->get('foo'));
+
         $this->assertEquals([], $redis->sMembers($counterRedisKey));
         $this->assertFalse($redis->get('PROMETHEUS_:counter:test_some_counter'));
         $this->assertEquals([], $redis->sMembers($gaugeRedisKey));
         $this->assertFalse($redis->get('PROMETHEUS_:gauge:test_some_gauge'));
         $this->assertEquals([], $redis->sMembers($histogramRedisKey));
         $this->assertFalse($redis->get('PROMETHEUS_:histogram:test_some_histogram'));
+
+        $this->assertEquals("\n", (new RenderTextFormat())->render($registry->getMetricFamilySamples()));
 
         $redis->del('foo');
     }
