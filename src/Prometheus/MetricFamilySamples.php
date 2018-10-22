@@ -8,7 +8,7 @@ class MetricFamilySamples
     private $type;
     private $help;
     private $labelNames;
-    private $samples = array();
+    private $samples = [];
 
     /**
      * @param array $data

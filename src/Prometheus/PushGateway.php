@@ -3,7 +3,6 @@
 
 namespace Prometheus;
 
-
 use GuzzleHttp\Client;
 
 class PushGateway
@@ -69,13 +68,13 @@ class PushGateway
             }
         }
         $client = new Client();
-        $requestOptions = array(
-            'headers' => array(
+        $requestOptions = [
+            'headers' => [
                 'Content-Type' => RenderTextFormat::MIME_TYPE
-            ),
+            ],
             'connect_timeout' => 10,
             'timeout' => 20,
-        );
+        ];
         if ($method != 'delete') {
             $renderer = new RenderTextFormat();
             $requestOptions['body'] = $renderer->render($collectorRegistry->getMetricFamilySamples());
@@ -87,5 +86,4 @@ class PushGateway
             throw new \RuntimeException($msg);
         }
     }
-
 }

@@ -3,7 +3,6 @@
 
 namespace Prometheus\Exception;
 
-
 /**
  * Exception thrown if an error occurs during metrics storage.
  */

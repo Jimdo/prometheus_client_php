@@ -3,7 +3,6 @@
 
 namespace Prometheus;
 
-
 use Prometheus\Storage\Adapter;
 
 class Gauge extends Collector
@@ -14,12 +13,12 @@ class Gauge extends Collector
      * @param double $value e.g. 123
      * @param array $labels e.g. ['status', 'opcode']
      */
-    public function set($value, $labels = array())
+    public function set($value, $labels = [])
     {
         $this->assertLabelsAreDefinedCorrectly($labels);
 
         $this->storageAdapter->updateGauge(
-            array(
+            [
                 'name' => $this->getName(),
                 'help' => $this->getHelp(),
                 'type' => $this->getType(),
@@ -27,7 +26,7 @@ class Gauge extends Collector
                 'labelValues' => $labels,
                 'value' => $value,
                 'command' => Adapter::COMMAND_SET
-            )
+            ]
         );
     }
 
@@ -39,17 +38,17 @@ class Gauge extends Collector
         return self::TYPE;
     }
 
-    public function inc($labels = array())
+    public function inc($labels = [])
     {
         $this->incBy(1, $labels);
     }
 
-    public function incBy($value, $labels = array())
+    public function incBy($value, $labels = [])
     {
         $this->assertLabelsAreDefinedCorrectly($labels);
 
         $this->storageAdapter->updateGauge(
-            array(
+            [
                 'name' => $this->getName(),
                 'help' => $this->getHelp(),
                 'type' => $this->getType(),
@@ -57,16 +56,16 @@ class Gauge extends Collector
                 'labelValues' => $labels,
                 'value' => $value,
                 'command' => Adapter::COMMAND_INCREMENT_FLOAT
-            )
+            ]
         );
     }
 
-    public function dec($labels = array())
+    public function dec($labels = [])
     {
         $this->decBy(1, $labels);
     }
 
-    public function decBy($value, $labels = array())
+    public function decBy($value, $labels = [])
     {
         $this->incBy(-$value, $labels);
     }

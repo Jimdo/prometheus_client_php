@@ -37,11 +37,11 @@ abstract class AbstractCollectorRegistryTest extends PHPUnit_Framework_TestCase
     {
         $registry = new CollectorRegistry($this->adapter);
 
-        $g = $registry->registerGauge('test', 'some_metric', 'this is for testing', array('foo'));
-        $g->set(35, array('bbb'));
-        $g->set(35, array('ddd'));
-        $g->set(35, array('aaa'));
-        $g->set(35, array('ccc'));
+        $g = $registry->registerGauge('test', 'some_metric', 'this is for testing', ['foo']);
+        $g->set(35, ['bbb']);
+        $g->set(35, ['ddd']);
+        $g->set(35, ['aaa']);
+        $g->set(35, ['ccc']);
 
 
         $registry = new CollectorRegistry($this->adapter);
@@ -66,10 +66,10 @@ EOF
     public function itShouldSaveCounters()
     {
         $registry = new CollectorRegistry($this->adapter);
-        $metric = $registry->registerCounter('test', 'some_metric', 'this is for testing', array('foo', 'bar'));
-        $metric->incBy(2, array('lalal', 'lululu'));
-        $registry->getCounter('test', 'some_metric', array('foo', 'bar'))->inc(array('lalal', 'lululu'));
-        $registry->getCounter('test', 'some_metric', array('foo', 'bar'))->inc(array('lalal', 'lvlvlv'));
+        $metric = $registry->registerCounter('test', 'some_metric', 'this is for testing', ['foo', 'bar']);
+        $metric->incBy(2, ['lalal', 'lululu']);
+        $registry->getCounter('test', 'some_metric', ['foo', 'bar'])->inc(['lalal', 'lululu']);
+        $registry->getCounter('test', 'some_metric', ['foo', 'bar'])->inc(['lalal', 'lvlvlv']);
 
         $registry = new CollectorRegistry($this->adapter);
         $this->assertThat(
@@ -91,12 +91,12 @@ EOF
     public function itShouldSaveHistograms()
     {
         $registry = new CollectorRegistry($this->adapter);
-        $metric = $registry->registerHistogram('test', 'some_metric', 'this is for testing', array('foo', 'bar'), array(0.1, 1, 5, 10));
-        $metric->observe(2, array('lalal', 'lululu'));
-        $registry->getHistogram('test', 'some_metric', array('foo', 'bar'))->observe(7.1, array('lalal', 'lvlvlv'));
-        $registry->getHistogram('test', 'some_metric', array('foo', 'bar'))->observe(13, array('lalal', 'lululu'));
-        $registry->getHistogram('test', 'some_metric', array('foo', 'bar'))->observe(7.1, array('lalal', 'lululu'));
-        $registry->getHistogram('test', 'some_metric', array('foo', 'bar'))->observe(7.1, array('gnaaha', 'hihihi'));
+        $metric = $registry->registerHistogram('test', 'some_metric', 'this is for testing', ['foo', 'bar'], [0.1, 1, 5, 10]);
+        $metric->observe(2, ['lalal', 'lululu']);
+        $registry->getHistogram('test', 'some_metric', ['foo', 'bar'])->observe(7.1, ['lalal', 'lvlvlv']);
+        $registry->getHistogram('test', 'some_metric', ['foo', 'bar'])->observe(13, ['lalal', 'lululu']);
+        $registry->getHistogram('test', 'some_metric', ['foo', 'bar'])->observe(7.1, ['lalal', 'lululu']);
+        $registry->getHistogram('test', 'some_metric', ['foo', 'bar'])->observe(7.1, ['gnaaha', 'hihihi']);
 
         $registry = new CollectorRegistry($this->adapter);
         $this->assertThat(
@@ -211,8 +211,8 @@ EOF
     public function itShouldForbidRegisteringTheSameCounterWithDifferentLabels()
     {
         $registry = new CollectorRegistry( $this->adapter);
-        $registry->registerCounter('foo', 'metric', 'help', array("foo", "bar"));
-        $registry->registerCounter('foo', 'metric', 'help', array("spam", "eggs"));
+        $registry->registerCounter('foo', 'metric', 'help', ["foo", "bar"]);
+        $registry->registerCounter('foo', 'metric', 'help', ["spam", "eggs"]);
     }
 
     /**
@@ -233,8 +233,8 @@ EOF
     public function itShouldForbidRegisteringTheSameHistogramWithDifferentLabels()
     {
         $registry = new CollectorRegistry( $this->adapter);
-        $registry->registerCounter('foo', 'metric', 'help', array("foo", "bar"));
-        $registry->registerCounter('foo', 'metric', 'help', array("spam", "eggs"));
+        $registry->registerCounter('foo', 'metric', 'help', ["foo", "bar"]);
+        $registry->registerCounter('foo', 'metric', 'help', ["spam", "eggs"]);
     }
 
     /**
@@ -255,8 +255,8 @@ EOF
     public function itShouldForbidRegisteringTheSameGaugeWithDifferentLabels()
     {
         $registry = new CollectorRegistry( $this->adapter);
-        $registry->registerGauge('foo', 'metric', 'help', array("foo", "bar"));
-        $registry->registerGauge('foo', 'metric', 'help', array("spam", "eggs"));
+        $registry->registerGauge('foo', 'metric', 'help', ["foo", "bar"]);
+        $registry->registerGauge('foo', 'metric', 'help', ["spam", "eggs"]);
     }
 
     /**

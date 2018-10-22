@@ -7,7 +7,7 @@ use Prometheus\Storage\APC;
 use Test\Prometheus\AbstractHistogramTest;
 
 /**
- * See https://prometheus.io/docs/instrumenting/exposition_formats/
+ * @see https://prometheus.io/docs/instrumenting/exposition_formats/
  * @requires extension apc
  */
 class HistogramTest extends AbstractHistogramTest
