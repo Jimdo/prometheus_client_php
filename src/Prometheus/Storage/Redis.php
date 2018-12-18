@@ -41,6 +41,9 @@ class Redis implements Adapter
         if (!isset(self::$defaultOptions['password'])) {
             self::$defaultOptions['password'] = null;
         }
+        if (!isset(self::$defaultOptions['db'])) {
+            self::$defaultOptions['db'] = false;
+        }
 
         $this->options = array_merge(self::$defaultOptions, $options);
         $this->redis = new \Redis();
@@ -96,6 +99,9 @@ class Redis implements Adapter
             }
             if ($this->options['password']) {
                 $this->redis->auth($this->options['password']);
+            }
+            if($this->options['db']){
+                $this->redis->select($this->options['db']);
             }
             $this->redis->setOption(\Redis::OPT_READ_TIMEOUT, $this->options['read_timeout']);
         } catch (\RedisException $e) {
