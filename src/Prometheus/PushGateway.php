@@ -5,10 +5,14 @@ namespace Prometheus;
 
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Uri;
 
 class PushGateway
 {
+    /** @var \Psr\Http\Message\UriInterface  */
     private $address;
+    /** @var string */
+    private $hostPort;
 
     /**
      * PushGateway constructor.
@@ -16,7 +20,8 @@ class PushGateway
      */
     public function __construct($address)
     {
-        $this->address = $address;
+        $this->address = Uri::fromParts(array_merge(['scheme' => 'http'], parse_url($address)));
+        $this->hostPort = $this->address->getHost() . ':' . $this->address->getPort();
     }
 
     /**
@@ -62,20 +67,23 @@ class PushGateway
      */
     private function doRequest(CollectorRegistry $collectorRegistry, $job, $groupingKey, $method)
     {
-        $url = "http://" . $this->address . "/metrics/job/" . $job;
+        $path = '/metrics/job/' . $job;
         if (!empty($groupingKey)) {
             foreach ($groupingKey as $label => $value) {
-                $url .= "/" . $label . "/" . $value;
+                $path .= '/' . $label . '/' . $value;
             }
         }
+
+        $url = $this->address->withPath($path);
+
         $client = new Client();
-        $requestOptions = array(
-            'headers' => array(
-                'Content-Type' => RenderTextFormat::MIME_TYPE
-            ),
+        $requestOptions = [
+            'headers' => [
+                'Content-Type' => RenderTextFormat::MIME_TYPE,
+            ],
             'connect_timeout' => 10,
             'timeout' => 20,
-        );
+        ];
         if ($method != 'delete') {
             $renderer = new RenderTextFormat();
             $requestOptions['body'] = $renderer->render($collectorRegistry->getMetricFamilySamples());
@@ -83,7 +91,7 @@ class PushGateway
         $response = $client->request($method, $url, $requestOptions);
         $statusCode = $response->getStatusCode();
         if ($statusCode != 202) {
-            $msg = "Unexpected status code " . $statusCode . " received from pushgateway " . $this->address . ": " . $response->getBody();
+            $msg = 'Unexpected status code ' . $statusCode . ' received from pushgateway ' . $this->hostPort . ': ' . $response->getBody();
             throw new \RuntimeException($msg);
         }
     }
