@@ -1,15 +1,10 @@
 <?php
-
-
 namespace Prometheus\Storage;
-
-
 use Prometheus\MetricFamilySamples;
-
+use RuntimeException;
 class APCU implements Adapter
 {
     const PROMETHEUS_PREFIX = 'prom';
-
     /**
      * @return MetricFamilySamples[]
      */
@@ -20,18 +15,15 @@ class APCU implements Adapter
         $metrics = array_merge($metrics, $this->collectCounters());
         return $metrics;
     }
-
     public function updateHistogram(array $data)
     {
         // Initialize the sum
         $sumKey = $this->histogramBucketValueKey($data, 'sum');
         $new = apcu_add($sumKey, $this->toInteger(0));
-
         // If sum does not exist, assume a new histogram and store the metadata
         if ($new) {
             apcu_store($this->metaKey($data), json_encode($this->metaData($data)));
         }
-
         // Atomically increment the sum
         // Taken from https://github.com/prometheus/client_golang/blob/66058aac3a83021948e5fb12f1f408ff556b9037/prometheus/value.go#L91
         $done = false;
@@ -39,7 +31,6 @@ class APCU implements Adapter
             $old = apcu_fetch($sumKey);
             $done = apcu_cas($sumKey, $old, $this->toInteger($this->fromInteger($old) + $data['value']));
         }
-
         // Figure out in which bucket the observation belongs
         $bucketToIncrease = '+Inf';
         foreach ($data['buckets'] as $bucket) {
@@ -48,12 +39,10 @@ class APCU implements Adapter
                 break;
             }
         }
-
         // Initialize and increment the bucket
         apcu_add($this->histogramBucketValueKey($data, $bucketToIncrease), 0);
         apcu_inc($this->histogramBucketValueKey($data, $bucketToIncrease));
     }
-
     public function updateGauge(array $data)
     {
         $valueKey = $this->valueKey($data);
@@ -73,7 +62,6 @@ class APCU implements Adapter
             }
         }
     }
-
     public function updateCounter(array $data)
     {
         $new = apcu_add($this->valueKey($data), 0);
@@ -82,12 +70,10 @@ class APCU implements Adapter
         }
         apcu_inc($this->valueKey($data), $data['value']);
     }
-
-    public function flushAPCU()
+    public function flushAPC()
     {
         apcu_clear_cache();
     }
-
     /**
      * @param array $data
      * @return string
@@ -96,25 +82,35 @@ class APCU implements Adapter
     {
         return implode(':', array(self::PROMETHEUS_PREFIX, $data['type'], $data['name'], 'meta'));
     }
-
     /**
      * @param array $data
      * @return string
      */
     private function valueKey(array $data)
     {
-        return implode(':', array(self::PROMETHEUS_PREFIX, $data['type'], $data['name'], json_encode($data['labelValues']), 'value'));
+        return implode(':', array(
+            self::PROMETHEUS_PREFIX,
+            $data['type'],
+            $data['name'],
+            $this->encodeLabelValues($data['labelValues']),
+            'value'
+        ));
     }
-
     /**
      * @param array $data
      * @return string
      */
     private function histogramBucketValueKey(array $data, $bucket)
     {
-        return implode(':', array(self::PROMETHEUS_PREFIX, $data['type'], $data['name'], json_encode($data['labelValues']), $bucket, 'value'));
+        return implode(':', array(
+            self::PROMETHEUS_PREFIX,
+            $data['type'],
+            $data['name'],
+            $this->encodeLabelValues($data['labelValues']),
+            $bucket,
+            'value'
+        ));
     }
-
     /**
      * @param array $data
      * @return array
@@ -127,7 +123,6 @@ class APCU implements Adapter
         unset($metricsMetaData['labelValues']);
         return $metricsMetaData;
     }
-
     /**
      * @return array
      */
@@ -142,13 +137,13 @@ class APCU implements Adapter
                 'type' => $metaData['type'],
                 'labelNames' => $metaData['labelNames'],
             );
-            foreach (new \APCUIterator( '/^prom:counter:' . $metaData['name'] . ':.*:value/') as $value) {
+            foreach (new \APCUIterator('/^prom:counter:' . $metaData['name'] . ':.*:value/') as $value) {
                 $parts = explode(':', $value['key']);
                 $labelValues = $parts[3];
                 $data['samples'][] = array(
                     'name' => $metaData['name'],
                     'labelNames' => array(),
-                    'labelValues' => json_decode($labelValues,true),
+                    'labelValues' => $this->decodeLabelValues($labelValues),
                     'value' => $value['value']
                 );
             }
@@ -157,7 +152,6 @@ class APCU implements Adapter
         }
         return $counters;
     }
-
     /**
      * @return array
      */
@@ -178,25 +172,22 @@ class APCU implements Adapter
                 $data['samples'][] = array(
                     'name' => $metaData['name'],
                     'labelNames' => array(),
-                    'labelValues' => json_decode($labelValues,true),
+                    'labelValues' => $this->decodeLabelValues($labelValues),
                     'value' => $this->fromInteger($value['value'])
                 );
             }
-
             $this->sortSamples($data['samples']);
             $gauges[] = new MetricFamilySamples($data);
         }
         return $gauges;
     }
-
     /**
      * @return array
      */
     private function collectHistograms()
     {
         $histograms = array();
-
-        foreach (new \APCUIterator( '/^prom:histogram:.*:meta/') as $histogram) {
+        foreach (new \APCUIterator('/^prom:histogram:.*:meta/') as $histogram) {
             $metaData = json_decode($histogram['value'], true);
             $data = array(
                 'name' => $metaData['name'],
@@ -205,25 +196,22 @@ class APCU implements Adapter
                 'labelNames' => $metaData['labelNames'],
                 'buckets' => $metaData['buckets']
             );
-
             // Add the Inf bucket so we can compute it later on
             $data['buckets'][] = '+Inf';
-
             $histogramBuckets = array();
-            foreach (new \APCUIterator( '/^prom:histogram:' . $metaData['name'] . ':.*:value/') as $value) {
+            foreach (new \APCUIterator('/^prom:histogram:' . $metaData['name'] . ':.*:value/') as $value) {
                 $parts = explode(':', $value['key']);
                 $labelValues = $parts[3];
                 $bucket = $parts[4];
                 // Key by labelValues
                 $histogramBuckets[$labelValues][$bucket] = $value['value'];
             }
-
             // Compute all buckets
             $labels = array_keys($histogramBuckets);
             sort($labels);
             foreach ($labels as $labelValues) {
                 $acc = 0;
-                $decodedLabelValues = json_decode($labelValues,true);
+                $decodedLabelValues = $this->decodeLabelValues($labelValues);
                 foreach ($data['buckets'] as $bucket) {
                     $bucket = (string) $bucket;
                     if (!isset($histogramBuckets[$labelValues][$bucket])) {
@@ -243,7 +231,6 @@ class APCU implements Adapter
                         );
                     }
                 }
-
                 // Add the count
                 $data['samples'][] = array(
                     'name' => $metaData['name'] . '_count',
@@ -251,7 +238,6 @@ class APCU implements Adapter
                     'labelValues' => $decodedLabelValues,
                     'value' => $acc
                 );
-
                 // Add the sum
                 $data['samples'][] = array(
                     'name' => $metaData['name'] . '_sum',
@@ -259,13 +245,11 @@ class APCU implements Adapter
                     'labelValues' => $decodedLabelValues,
                     'value' => $this->fromInteger($histogramBuckets[$labelValues]['sum'])
                 );
-
             }
             $histograms[] = new MetricFamilySamples($data);
         }
         return $histograms;
     }
-
     /**
      * @param mixed $val
      * @return int
@@ -274,7 +258,6 @@ class APCU implements Adapter
     {
         return unpack('Q', pack('d', $val))[1];
     }
-
     /**
      * @param mixed $val
      * @return int
@@ -283,11 +266,40 @@ class APCU implements Adapter
     {
         return unpack('d', pack('Q', $val))[1];
     }
-
     private function sortSamples(array &$samples)
     {
         usort($samples, function($a, $b){
             return strcmp(implode("", $a['labelValues']), implode("", $b['labelValues']));
         });
+    }
+    /**
+     * @param array $values
+     * @return string
+     * @throws RuntimeException
+     */
+    private function encodeLabelValues(array $values)
+    {
+        $json = json_encode($values);
+        if (false === $json) {
+            throw new RuntimeException(json_last_error_msg());
+        }
+        return base64_encode($json);
+    }
+    /**
+     * @param string $values
+     * @return array
+     * @throws RuntimeException
+     */
+    private function decodeLabelValues($values)
+    {
+        $json = base64_decode($values, true);
+        if (false === $json) {
+            throw new RuntimeException('Cannot base64 decode label values');
+        }
+        $decodedValues = json_decode($json, true);
+        if (false === $decodedValues) {
+            throw new RuntimeException(json_last_error_msg());
+        }
+        return $decodedValues;
     }
 }
