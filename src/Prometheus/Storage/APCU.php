@@ -148,7 +148,7 @@ class APCU implements Adapter
                 $data['samples'][] = array(
                     'name' => $metaData['name'],
                     'labelNames' => array(),
-                    'labelValues' => json_decode($labelValues),
+                    'labelValues' => json_decode($labelValues,true),
                     'value' => $value['value']
                 );
             }
@@ -178,7 +178,7 @@ class APCU implements Adapter
                 $data['samples'][] = array(
                     'name' => $metaData['name'],
                     'labelNames' => array(),
-                    'labelValues' => json_decode($labelValues),
+                    'labelValues' => json_decode($labelValues,true),
                     'value' => $this->fromInteger($value['value'])
                 );
             }
@@ -223,7 +223,7 @@ class APCU implements Adapter
             sort($labels);
             foreach ($labels as $labelValues) {
                 $acc = 0;
-                $decodedLabelValues = json_decode($labelValues);
+                $decodedLabelValues = json_decode($labelValues,true);
                 foreach ($data['buckets'] as $bucket) {
                     $bucket = (string) $bucket;
                     if (!isset($histogramBuckets[$labelValues][$bucket])) {
