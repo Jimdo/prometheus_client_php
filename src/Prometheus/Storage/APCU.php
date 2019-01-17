@@ -70,7 +70,7 @@ class APCU implements Adapter
         }
         apcu_inc($this->valueKey($data), $data['value']);
     }
-    public function flushAPC()
+    public function flushAPCU()
     {
         apcu_clear_cache();
     }
