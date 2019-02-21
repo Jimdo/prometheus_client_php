@@ -64,6 +64,8 @@ class Histogram extends Collector
      */
     public function observe($value, $labels = array())
     {
+        $labels = $this->setDefaultLabelValues($labels);
+
         $this->assertLabelsAreDefinedCorrectly($labels);
 
         $this->storageAdapter->updateHistogram(

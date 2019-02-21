@@ -16,6 +16,8 @@ class Gauge extends Collector
      */
     public function set($value, $labels = array())
     {
+        $labels = $this->setDefaultLabelValues($labels);
+
         $this->assertLabelsAreDefinedCorrectly($labels);
 
         $this->storageAdapter->updateGauge(
@@ -46,6 +48,8 @@ class Gauge extends Collector
 
     public function incBy($value, $labels = array())
     {
+        $labels = $this->setDefaultLabelValues($labels);
+
         $this->assertLabelsAreDefinedCorrectly($labels);
 
         $this->storageAdapter->updateGauge(
