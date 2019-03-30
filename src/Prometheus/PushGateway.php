@@ -23,6 +23,16 @@ class PushGateway
     }
 
     /**
+     * @param string $address
+     * @return PushGateway
+     */
+    public static function makeClientWithAddress($address)
+    {
+        $client = new Client(['base_uri' => "http://$address/metrics/job/"]);
+        return new PushGateway($client);
+    }
+
+    /**
      * Pushes all metrics in a Collector, replacing all those with the same job.
      * Uses HTTP PUT.
      * @param CollectorRegistry $collectorRegistry
