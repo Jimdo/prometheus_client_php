@@ -8,67 +8,73 @@ use GuzzleHttp\Client;
 
 class PushGateway
 {
-    private $address;
+    /**
+     * @var Client $client
+     */
+    private $client;
 
     /**
      * PushGateway constructor.
-     * @param $address string host:port of the push gateway
+     * @param Client $client client with configured push gateway base_uri param, example uri: http://pushgateway.com/metrics/job/
      */
-    public function __construct($address)
+    public function __construct(Client $client)
     {
-        $this->address = $address;
+        $this->client = $client;
     }
 
     /**
      * Pushes all metrics in a Collector, replacing all those with the same job.
      * Uses HTTP PUT.
      * @param CollectorRegistry $collectorRegistry
-     * @param $job
-     * @param $groupingKey
+     * @param string $job
+     * @param array|null $groupingKey
+     * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function push(CollectorRegistry $collectorRegistry, $job, $groupingKey = null)
     {
-        $this->doRequest($collectorRegistry, $job, $groupingKey, 'put');
+        $this->doRequest('put', $job, $groupingKey, $collectorRegistry);
     }
 
     /**
      * Pushes all metrics in a Collector, replacing only previously pushed metrics of the same name and job.
      * Uses HTTP POST.
      * @param CollectorRegistry $collectorRegistry
-     * @param $job
-     * @param $groupingKey
+     * @param string $job
+     * @param array|null $groupingKey
+     * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function pushAdd(CollectorRegistry $collectorRegistry, $job, $groupingKey = null)
     {
-        $this->doRequest($collectorRegistry, $job, $groupingKey, 'post');
+        $this->doRequest('post', $job, $groupingKey, $collectorRegistry);
     }
 
     /**
      * Deletes metrics from the Pushgateway.
      * Uses HTTP POST.
-     * @param $job
-     * @param $groupingKey
+     * @param string $job
+     * @param array|null $groupingKey
+     * @throws \GuzzleHttp\Exception\GuzzleException
      */
     public function delete($job, $groupingKey = null)
     {
-        $this->doRequest(null, $job, $groupingKey, 'delete');
+        $this->doRequest('delete', $job, $groupingKey);
     }
 
     /**
-     * @param CollectorRegistry $collectorRegistry
-     * @param $job
-     * @param $groupingKey
-     * @param $method
+     * @param string $method
+     * @param string $job
+     * @param array|null $groupingKey
+     * @param CollectorRegistry|null $collectorRegistry
+     * @throws \GuzzleHttp\Exception\GuzzleException
      */
-    private function doRequest(CollectorRegistry $collectorRegistry, $job, $groupingKey, $method)
+    private function doRequest($method, $job, $groupingKey, CollectorRegistry $collectorRegistry = null)
     {
-        $url = "http://" . $this->address . "/metrics/job/" . $job;
+        $url = $job;
         if (!empty($groupingKey)) {
             foreach ($groupingKey as $label => $value) {
-                $url .= "/" . $label . "/" . $value;
+                $url .= '/' . $label . '/' . $value;
             }
         }
-        $client = new Client();
         $requestOptions = array(
             'headers' => array(
                 'Content-Type' => RenderTextFormat::MIME_TYPE
@@ -76,14 +82,17 @@ class PushGateway
             'connect_timeout' => 10,
             'timeout' => 20,
         );
-        if ($method != 'delete') {
+        if ($method !== 'delete') {
+            if ($collectorRegistry === null) {
+                throw new \RuntimeException('CollectorRegistry not set');
+            }
             $renderer = new RenderTextFormat();
             $requestOptions['body'] = $renderer->render($collectorRegistry->getMetricFamilySamples());
         }
-        $response = $client->request($method, $url, $requestOptions);
+        $response = $this->client->request($method, $url, $requestOptions);
         $statusCode = $response->getStatusCode();
-        if ($statusCode != 202) {
-            $msg = "Unexpected status code " . $statusCode . " received from pushgateway " . $this->address . ": " . $response->getBody();
+        if ($statusCode !== 202) {
+            $msg = "Unexpected status code {$statusCode} received from pushgateway body: {$response->getBody()}";
             throw new \RuntimeException($msg);
         }
     }
