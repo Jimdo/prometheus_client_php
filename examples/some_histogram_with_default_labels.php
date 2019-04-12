@@ -21,7 +21,7 @@ $registry = new CollectorRegistry($adapter);
 
 $registry->applyDefaultLabels(['host' => $_SERVER['SERVER_NAME']]);
 
-$histogram = $registry->registerHistogram('test', 'some_histogram', 'it observes', ['type'], [0.1, 1, 2, 3.5, 4, 5, 6, 7, 8, 9]);
+$histogram = $registry->registerHistogram('test', 'some_histogram', 'it observes', ['type'], [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]);
 $histogram->observe($_GET['c'], ['blue']);
 
 echo "OK\n";
