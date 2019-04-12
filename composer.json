@@ -1,14 +1,6 @@
 {
-    "name": "jimdo/prometheus_client_php",
+    "name": "thebeatapp/prometheus_client_php",
     "authors": [
-        {
-            "name": "Joscha",
-            "email": "joscha@schnipseljagd.org"
-        },
-        {
-            "name": "Jan Brauer",
-            "email": "jan.brauer@jimdo.com"
-        }
     ],
     "require": {
         "php": ">=5.6.3",
