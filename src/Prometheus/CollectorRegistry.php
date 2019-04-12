@@ -17,6 +17,11 @@ class CollectorRegistry
     private static $defaultRegistry;
 
     /**
+     * @var array
+     */
+    private $defaultLabels;
+
+    /**
      * @var Adapter
      */
     private $storageAdapter;
@@ -36,6 +41,15 @@ class CollectorRegistry
     public function __construct(Adapter $redisAdapter)
     {
         $this->storageAdapter = $redisAdapter;
+    }
+
+    /**
+     * @param array $defaultLabels
+     * @return void
+     */
+    public function applyDefaultLabels(array $defaultLabels = [])
+    {
+        $this->defaultLabels = $defaultLabels;
     }
 
     /**
@@ -78,6 +92,11 @@ class CollectorRegistry
             $help,
             $labels
         );
+
+        if($this->defaultLabels) {
+            $this->gauges[$metricIdentifier]->applyDefaultLabels($this->defaultLabels);
+        }
+
         return $this->gauges[$metricIdentifier];
     }
 
@@ -102,6 +121,7 @@ class CollectorRegistry
      * @param string $help e.g. The duration something took in seconds.
      * @param array $labels e.g. ['controller', 'action']
      * @return Gauge
+     * @throws MetricsRegistrationException
      */
     public function getOrRegisterGauge($namespace, $name, $help, $labels = array())
     {
@@ -134,6 +154,11 @@ class CollectorRegistry
             $help,
             $labels
         );
+
+        if($this->defaultLabels) {
+            $this->counters[$metricIdentifier]->applyDefaultLabels($this->defaultLabels);
+        }
+
         return $this->counters[self::metricIdentifier($namespace, $name)];
     }
 
@@ -158,6 +183,7 @@ class CollectorRegistry
      * @param string $help e.g. The number of requests made.
      * @param array $labels e.g. ['controller', 'action']
      * @return Counter
+     * @throws MetricsRegistrationException
      */
     public function getOrRegisterCounter($namespace, $name, $help, $labels = array())
     {
@@ -192,6 +218,11 @@ class CollectorRegistry
             $labels,
             $buckets
         );
+
+        if($this->defaultLabels) {
+            $this->histograms[$metricIdentifier]->applyDefaultLabels($this->defaultLabels);
+        }
+
         return $this->histograms[$metricIdentifier];
     }
 

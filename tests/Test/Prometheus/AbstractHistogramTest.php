@@ -374,6 +374,152 @@ abstract class AbstractHistogramTest extends PHPUnit_Framework_TestCase
 
     /**
      * @test
+     */
+    public function itShouldObserveWithLabelsAndDefaults()
+    {
+        $histogram = new Histogram(
+            $this->adapter,
+            'test',
+            'some_metric',
+            'this is for testing',
+            array('foo', 'bar'),
+            array(100, 200, 300)
+        );
+
+        $histogram->applyDefaultLabels(['test_foo' => 'test_bar']);
+
+        $histogram->observe(123, array('lalal', 'lululu'));
+        $histogram->observe(245, array('lalal', 'lululu'));
+
+        $this->assertThat(
+            $this->adapter->collect(),
+            $this->equalTo(
+                array(
+                    new MetricFamilySamples(
+                        array(
+                            'name' => 'test_some_metric',
+                            'help' => 'this is for testing',
+                            'type' => Histogram::TYPE,
+                            'labelNames' => array('foo', 'bar', 'test_foo'),
+                            'samples' => array(
+                                array(
+                                    'name' => 'test_some_metric_bucket',
+                                    'labelNames' => array('le'),
+                                    'labelValues' => array('lalal', 'lululu', 'test_bar', 100),
+                                    'value' => 0,
+                                ),
+                                array(
+                                    'name' => 'test_some_metric_bucket',
+                                    'labelNames' => array('le'),
+                                    'labelValues' => array('lalal', 'lululu', 'test_bar', 200),
+                                    'value' => 1,
+                                ),
+                                array(
+                                    'name' => 'test_some_metric_bucket',
+                                    'labelNames' => array('le'),
+                                    'labelValues' => array('lalal', 'lululu', 'test_bar', 300),
+                                    'value' => 2,
+                                ),
+                                array(
+                                    'name' => 'test_some_metric_bucket',
+                                    'labelNames' => array('le'),
+                                    'labelValues' => array('lalal', 'lululu', 'test_bar', '+Inf'),
+                                    'value' => 2,
+                                ),
+                                array(
+                                    'name' => 'test_some_metric_count',
+                                    'labelNames' => array(),
+                                    'labelValues' => array('lalal', 'lululu', 'test_bar'),
+                                    'value' => 2,
+                                ),
+                                array(
+                                    'name' => 'test_some_metric_sum',
+                                    'labelNames' => array(),
+                                    'labelValues' => array('lalal', 'lululu', 'test_bar'),
+                                    'value' => 368,
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function itShouldObserveWithoutLabelWhenNoLabelsAreDefinedAndDefaults()
+    {
+        $histogram = new Histogram(
+            $this->adapter,
+            'test',
+            'some_metric',
+            'this is for testing',
+            array(),
+            array(100, 200, 300)
+        );
+
+        $histogram->applyDefaultLabels(['test_foo' => 'test_bar']);
+
+        $histogram->observe(245);
+        $this->assertThat(
+            $this->adapter->collect(),
+            $this->equalTo(
+                array(
+                    new MetricFamilySamples(
+                        array(
+                            'name' => 'test_some_metric',
+                            'help' => 'this is for testing',
+                            'type' => Histogram::TYPE,
+                            'labelNames' => array('test_foo'),
+                            'samples' => array(
+                                array(
+                                    'name' => 'test_some_metric_bucket',
+                                    'labelNames' => array('le'),
+                                    'labelValues' => array('test_bar', 100),
+                                    'value' => 0,
+                                ),
+                                array(
+                                    'name' => 'test_some_metric_bucket',
+                                    'labelNames' => array('le'),
+                                    'labelValues' => array('test_bar', 200),
+                                    'value' => 0,
+                                ),
+                                array(
+                                    'name' => 'test_some_metric_bucket',
+                                    'labelNames' => array('le'),
+                                    'labelValues' => array('test_bar', 300),
+                                    'value' => 1,
+                                ),
+                                array(
+                                    'name' => 'test_some_metric_bucket',
+                                    'labelNames' => array('le'),
+                                    'labelValues' => array('test_bar', '+Inf'),
+                                    'value' => 1,
+                                ),
+                                array(
+                                    'name' => 'test_some_metric_count',
+                                    'labelNames' => array(),
+                                    'labelValues' => array('test_bar'),
+                                    'value' => 1,
+                                ),
+                                array(
+                                    'name' => 'test_some_metric_sum',
+                                    'labelNames' => array(),
+                                    'labelValues' => array('test_bar'),
+                                    'value' => 245,
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        );
+    }
+
+    /**
+     * @test
      * @expectedException \InvalidArgumentException
      * @expectedExceptionMessage Histogram buckets must be in increasing order
      */

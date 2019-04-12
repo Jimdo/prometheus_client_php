@@ -31,6 +31,8 @@ class Counter extends Collector
      */
     public function incBy($count, array $labels = array())
     {
+        $labels = $this->setDefaultLabelValues($labels);
+
         $this->assertLabelsAreDefinedCorrectly($labels);
 
         $this->storageAdapter->updateCounter(
