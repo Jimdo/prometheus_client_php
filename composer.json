@@ -1,5 +1,5 @@
 {
-    "name": "thebeatapp/prometheus_client_php",
+    "name": "beatlabs/prometheus_client_php",
     "authors": [
     ],
     "require": {
