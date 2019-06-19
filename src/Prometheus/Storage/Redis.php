@@ -17,7 +17,7 @@ class Redis implements Adapter
     private static $prefix = 'PROMETHEUS_';
 
     private $options;
-    private $redis;
+    private $redis; /** @var \Redis */
 
     public function __construct(array $options = array())
     {
@@ -43,7 +43,7 @@ class Redis implements Adapter
         }
 
         $this->options = array_merge(self::$defaultOptions, $options);
-        $this->redis = new \Redis();
+        $this->redis = new RedisConnection($this->options);
     }
 
     /**
@@ -59,9 +59,13 @@ class Redis implements Adapter
         self::$prefix = $prefix;
     }
 
+    public function openConnection()
+    {
+        $this->redis->openConnection();
+    }
+
     public function flushRedis()
     {
-        $this->openConnection();
         $this->redis->flushAll();
     }
 
@@ -71,7 +75,6 @@ class Redis implements Adapter
      */
     public function collect()
     {
-        $this->openConnection();
         $metrics = $this->collectHistograms();
         $metrics = array_merge($metrics, $this->collectGauges());
         $metrics = array_merge($metrics, $this->collectCounters());
@@ -83,34 +86,8 @@ class Redis implements Adapter
         );
     }
 
-    /**
-     * @throws StorageException
-     */
-    private function openConnection()
-    {
-        try {
-            if ($this->options['persistent_connections']) {
-                @$this->redis->pconnect($this->options['host'], $this->options['port'], $this->options['timeout']);
-            } else {
-                @$this->redis->connect($this->options['host'], $this->options['port'], $this->options['timeout']);
-            }
-            if ($this->options['password']) {
-                $this->redis->auth($this->options['password']);
-            }
-            if (isset($this->options['database'])) {
-                $this->redis->select($this->options['database']);
-            }
-
-            $this->redis->setOption(\Redis::OPT_READ_TIMEOUT, $this->options['read_timeout']);
-            
-        } catch (\RedisException $e) {
-            throw new StorageException("Can't connect to Redis server", 0, $e);
-        }
-    }
-
     public function updateHistogram(array $data)
     {
-        $this->openConnection();
         $bucketToIncrease = '+Inf';
         foreach ($data['buckets'] as $bucket) {
             if ($data['value'] <= $bucket) {
@@ -121,7 +98,7 @@ class Redis implements Adapter
         $metaData = $data;
         unset($metaData['value']);
         unset($metaData['labelValues']);
-        $this->redis->eval(<<<LUA
+        $this->redis->evaluate(<<<LUA
 local increment = redis.call('hIncrByFloat', KEYS[1], KEYS[2], ARGV[1])
 redis.call('hIncrBy', KEYS[1], KEYS[3], 1)
 if increment == ARGV[1] then
@@ -144,12 +121,12 @@ LUA
 
     public function updateGauge(array $data)
     {
-        $this->openConnection();
+//        $this->openConnection();
         $metaData = $data;
         unset($metaData['value']);
         unset($metaData['labelValues']);
         unset($metaData['command']);
-        $this->redis->eval(<<<LUA
+        $this->redis->evaluate(<<<LUA
 local result = redis.call(KEYS[2], KEYS[1], KEYS[4], ARGV[1])
 
 if KEYS[2] == 'hSet' then
@@ -179,12 +156,11 @@ LUA
 
     public function updateCounter(array $data)
     {
-        $this->openConnection();
         $metaData = $data;
         unset($metaData['value']);
         unset($metaData['labelValues']);
         unset($metaData['command']);
-        $result = $this->redis->eval(<<<LUA
+        $result = $this->redis->evaluate(<<<LUA
 local result = redis.call(KEYS[2], KEYS[1], KEYS[4], ARGV[1])
 if result == tonumber(ARGV[1]) then
     redis.call('hMSet', KEYS[1], '__meta', ARGV[2])
