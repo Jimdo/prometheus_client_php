@@ -43,7 +43,10 @@ class Redis implements Adapter
         }
 
         $this->options = array_merge(self::$defaultOptions, $options);
-        $this->redis = new \Redis();
+//        $this->redis = new \Redis();
+        //Connect to predis instead of php-redis
+        $this->redis = \Illuminate\Support\Facades\Redis::connection('prometheus');
+
     }
 
     /**
@@ -89,20 +92,9 @@ class Redis implements Adapter
     private function openConnection()
     {
         try {
-            if ($this->options['persistent_connections']) {
-                @$this->redis->pconnect($this->options['host'], $this->options['port'], $this->options['timeout']);
-            } else {
-                @$this->redis->connect($this->options['host'], $this->options['port'], $this->options['timeout']);
-            }
             if ($this->options['password']) {
                 $this->redis->auth($this->options['password']);
             }
-            if (isset($this->options['database'])) {
-                $this->redis->select($this->options['database']);
-            }
-
-            $this->redis->setOption(\Redis::OPT_READ_TIMEOUT, $this->options['read_timeout']);
-            
         } catch (\RedisException $e) {
             throw new StorageException("Can't connect to Redis server", 0, $e);
         }
@@ -121,25 +113,23 @@ class Redis implements Adapter
         $metaData = $data;
         unset($metaData['value']);
         unset($metaData['labelValues']);
-        $this->redis->eval(<<<LUA
-local increment = redis.call('hIncrByFloat', KEYS[1], KEYS[2], ARGV[1])
+        $lua="local increment = redis.call('hIncrByFloat', KEYS[1], KEYS[2], ARGV[1])
 redis.call('hIncrBy', KEYS[1], KEYS[3], 1)
 if increment == ARGV[1] then
     redis.call('hSet', KEYS[1], '__meta', ARGV[2])
     redis.call('sAdd', KEYS[4], KEYS[1])
-end
-LUA
-            ,
-            array(
-                $this->toMetricKey($data),
-                json_encode(array('b' => 'sum', 'labelValues' => $data['labelValues'])),
-                json_encode(array('b' => $bucketToIncrease, 'labelValues' => $data['labelValues'])),
-                self::$prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
-                $data['value'],
-                json_encode($metaData),
-            ),
-            4
+end";
+        $params=array(
+            $lua,4,
+            $this->toMetricKey($data),
+            json_encode(array('b' => 'sum', 'labelValues' => $data['labelValues'])),
+            json_encode(array('b' => $bucketToIncrease, 'labelValues' => $data['labelValues'])),
+            self::$prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+            $data['value'],
+            json_encode($metaData),
         );
+        $result = call_user_func_array(['Illuminate\Support\Facades\Redis', 'EVAL'], $params);
+        return $result;
     }
 
     public function updateGauge(array $data)
@@ -149,7 +139,8 @@ LUA
         unset($metaData['value']);
         unset($metaData['labelValues']);
         unset($metaData['command']);
-        $this->redis->eval(<<<LUA
+
+        $lua="
 local result = redis.call(KEYS[2], KEYS[1], KEYS[4], ARGV[1])
 
 if KEYS[2] == 'hSet' then
@@ -163,18 +154,20 @@ else
         redis.call('sAdd', KEYS[3], KEYS[1])
     end
 end
-LUA
-            ,
-            array(
-                $this->toMetricKey($data),
-                $this->getRedisCommand($data['command']),
-                self::$prefix . Gauge::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
-                json_encode($data['labelValues']),
-                $data['value'],
-                json_encode($metaData),
-            ),
-            4
+";
+
+
+        $params=array($lua,
+            4,
+            json_encode($this->toMetricKey($data)),
+            $this->getRedisCommand($data['command']),
+            self::$prefix . Gauge::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+            json_encode($data['labelValues']),
+            $data['value'],
+            json_encode($metaData),
         );
+        $result = call_user_func_array(['Illuminate\Support\Facades\Redis', 'EVAL'], $params);
+        return $result;
     }
 
     public function updateCounter(array $data)
@@ -184,25 +177,23 @@ LUA
         unset($metaData['value']);
         unset($metaData['labelValues']);
         unset($metaData['command']);
-        $result = $this->redis->eval(<<<LUA
-local result = redis.call(KEYS[2], KEYS[1], KEYS[4], ARGV[1])
+
+        $lua="local result = redis.call(KEYS[2], KEYS[1], KEYS[4], ARGV[1])
 if result == tonumber(ARGV[1]) then
     redis.call('hMSet', KEYS[1], '__meta', ARGV[2])
     redis.call('sAdd', KEYS[3], KEYS[1])
 end
-return result
-LUA
-            ,
-            array(
-                $this->toMetricKey($data),
-                $this->getRedisCommand($data['command']),
-                self::$prefix . Counter::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
-                json_encode($data['labelValues']),
-                $data['value'],
-                json_encode($metaData),
-            ),
-            4
+return result";
+        $params= array(
+            $lua,4,
+            $this->toMetricKey($data),
+            $this->getRedisCommand($data['command']),
+            self::$prefix . Counter::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+            json_encode($data['labelValues']),
+            $data['value'],
+            json_encode($metaData),
         );
+        $result = call_user_func_array(['Illuminate\Support\Facades\Redis', 'EVAL'], $params);
         return $result;
     }
 
