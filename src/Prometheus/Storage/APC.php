@@ -238,22 +238,24 @@ class APC implements Adapter
                 $acc = 0;
                 $decodedLabelValues = $this->decodeLabelValues($labelValues);
                 foreach ($data['buckets'] as $bucket) {
+                    $sampleValue = 0;
                     $bucket = (string) $bucket;
                     if (!isset($histogramBuckets[$labelValues][$bucket])) {
                         $data['samples'][] = array(
                             'name' => $metaData['name'] . '_bucket',
                             'labelNames' => array('le'),
                             'labelValues' => array_merge($decodedLabelValues, array($bucket)),
-                            'value' => $acc
+                            'value' => $sampleValue
                         );
                     } else {
-                        $acc += $histogramBuckets[$labelValues][$bucket];
+                        $sampleValue = $histogramBuckets[$labelValues][$bucket];
                         $data['samples'][] = array(
                             'name' => $metaData['name'] . '_' . 'bucket',
                             'labelNames' => array('le'),
                             'labelValues' => array_merge($decodedLabelValues, array($bucket)),
-                            'value' => $acc
+                            'value' => $sampleValue
                         );
+                        $acc += $sampleValue;
                     }
                 }
 
