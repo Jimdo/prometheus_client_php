@@ -122,23 +122,23 @@ class Redis implements Adapter
         unset($metaData['value']);
         unset($metaData['labelValues']);
         $this->redis->eval(<<<LUA
-local increment = redis.call('hIncrByFloat', KEYS[1], KEYS[2], ARGV[1])
-redis.call('hIncrBy', KEYS[1], KEYS[3], 1)
-if increment == ARGV[1] then
-    redis.call('hSet', KEYS[1], '__meta', ARGV[2])
-    redis.call('sAdd', KEYS[4], KEYS[1])
+local increment = redis.call('hIncrByFloat', KEYS[1], ARGV[1], ARGV[3])
+redis.call('hIncrBy', KEYS[1], ARGV[2], 1)
+if increment == ARGV[3] then
+    redis.call('hSet', KEYS[1], '__meta', ARGV[4])
+    redis.call('sAdd', KEYS[2], KEYS[1])
 end
 LUA
             ,
             array(
                 $this->toMetricKey($data),
+                self::$prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
                 json_encode(array('b' => 'sum', 'labelValues' => $data['labelValues'])),
                 json_encode(array('b' => $bucketToIncrease, 'labelValues' => $data['labelValues'])),
-                self::$prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
                 $data['value'],
                 json_encode($metaData),
             ),
-            4
+            2
         );
     }
 
@@ -150,30 +150,30 @@ LUA
         unset($metaData['labelValues']);
         unset($metaData['command']);
         $this->redis->eval(<<<LUA
-local result = redis.call(KEYS[2], KEYS[1], KEYS[4], ARGV[1])
+local result = redis.call(ARGV[1], KEYS[1], ARGV[2], ARGV[3])
 
-if KEYS[2] == 'hSet' then
+if ARGV[1] == 'hSet' then
     if result == 1 then
-        redis.call('hSet', KEYS[1], '__meta', ARGV[2])
-        redis.call('sAdd', KEYS[3], KEYS[1])
+        redis.call('hSet', KEYS[1], '__meta', ARGV[4])
+        redis.call('sAdd', KEYS[2], KEYS[1])
     end
 else
-    if result == ARGV[1] then
-        redis.call('hSet', KEYS[1], '__meta', ARGV[2])
-        redis.call('sAdd', KEYS[3], KEYS[1])
+    if result == ARGV[3] then
+        redis.call('hSet', KEYS[1], '__meta', ARGV[4])
+        redis.call('sAdd', KEYS[2], KEYS[1])
     end
 end
 LUA
             ,
             array(
                 $this->toMetricKey($data),
-                $this->getRedisCommand($data['command']),
                 self::$prefix . Gauge::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+                $this->getRedisCommand($data['command']),
                 json_encode($data['labelValues']),
                 $data['value'],
                 json_encode($metaData),
             ),
-            4
+            2
         );
     }
 
@@ -185,23 +185,23 @@ LUA
         unset($metaData['labelValues']);
         unset($metaData['command']);
         $result = $this->redis->eval(<<<LUA
-local result = redis.call(KEYS[2], KEYS[1], KEYS[4], ARGV[1])
-if result == tonumber(ARGV[1]) then
-    redis.call('hMSet', KEYS[1], '__meta', ARGV[2])
-    redis.call('sAdd', KEYS[3], KEYS[1])
+local result = redis.call(ARGV[1], KEYS[1], ARGV[2], ARGV[3])
+if result == tonumber(ARGV[3]) then
+    redis.call('hMSet', KEYS[1], '__meta', ARGV[4])
+    redis.call('sAdd', KEYS[2], KEYS[1])
 end
 return result
 LUA
             ,
             array(
                 $this->toMetricKey($data),
-                $this->getRedisCommand($data['command']),
                 self::$prefix . Counter::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+                $this->getRedisCommand($data['command']),
                 json_encode($data['labelValues']),
                 $data['value'],
                 json_encode($metaData),
             ),
-            4
+            2
         );
         return $result;
     }
