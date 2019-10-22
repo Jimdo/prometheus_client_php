@@ -23,13 +23,13 @@
         "ext-apc": "Required if using APCu."
     },
     "autoload": {
-        "psr-0": {
-            "Prometheus\\": "src/"
+        "psr-4": {
+            "Prometheus\\": "src/Prometheus/"
         }
     },
     "autoload-dev": {
-        "psr-0": {
-            "Test\\Prometheus\\": "tests/"
+        "psr-4": {
+            "Test\\Prometheus\\": "tests/Test/Prometheus/"
         }
     },
     "license": "Apache-2.0"
