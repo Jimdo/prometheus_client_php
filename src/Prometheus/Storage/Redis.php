@@ -62,7 +62,23 @@ class Redis implements Adapter
     public function flushRedis()
     {
         $this->openConnection();
-        $this->redis->flushAll();
+        $this->redis->eval(<<<LUA
+for keyIndex,key in ipairs(KEYS) do
+    local members = redis.call('smembers', key)
+    for memberIndex,member in ipairs(members) do
+       redis.call('del', member)
+    end
+    redis.call('del', key)
+end
+LUA
+            ,
+            array(
+                self::$prefix . Counter::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+                self::$prefix . Gauge::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+                self::$prefix . Histogram::TYPE . self::PROMETHEUS_METRIC_KEYS_SUFFIX,
+            ),
+            3
+        );
     }
 
     /**
