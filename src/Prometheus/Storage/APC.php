@@ -3,7 +3,6 @@
 
 namespace Prometheus\Storage;
 
-
 use Prometheus\MetricFamilySamples;
 use RuntimeException;
 
@@ -86,7 +85,7 @@ class APC implements Adapter
 
     public function flushAPC()
     {
-       apcu_clear_cache();
+        apcu_clear_cache();
     }
 
     /**
@@ -95,7 +94,7 @@ class APC implements Adapter
      */
     private function metaKey(array $data)
     {
-        return implode(':', array(self::PROMETHEUS_PREFIX, $data['type'], $data['name'], 'meta'));
+        return implode(':', [self::PROMETHEUS_PREFIX, $data['type'], $data['name'], 'meta']);
     }
 
     /**
@@ -104,13 +103,13 @@ class APC implements Adapter
      */
     private function valueKey(array $data)
     {
-        return implode(':', array(
+        return implode(':', [
             self::PROMETHEUS_PREFIX,
             $data['type'],
             $data['name'],
             $this->encodeLabelValues($data['labelValues']),
             'value'
-        ));
+        ]);
     }
 
     /**
@@ -119,14 +118,14 @@ class APC implements Adapter
      */
     private function histogramBucketValueKey(array $data, $bucket)
     {
-        return implode(':', array(
+        return implode(':', [
             self::PROMETHEUS_PREFIX,
             $data['type'],
             $data['name'],
             $this->encodeLabelValues($data['labelValues']),
             $bucket,
             'value'
-        ));
+        ]);
     }
 
     /**
@@ -147,24 +146,24 @@ class APC implements Adapter
      */
     private function collectCounters()
     {
-        $counters = array();
+        $counters = [];
         foreach (new \APCUIterator('/^prom:counter:.*:meta/') as $counter) {
             $metaData = json_decode($counter['value'], true);
-            $data = array(
+            $data = [
                 'name' => $metaData['name'],
                 'help' => $metaData['help'],
                 'type' => $metaData['type'],
                 'labelNames' => $metaData['labelNames'],
-            );
+            ];
             foreach (new \APCUIterator('/^prom:counter:' . $metaData['name'] . ':.*:value/') as $value) {
                 $parts = explode(':', $value['key']);
                 $labelValues = $parts[3];
-                $data['samples'][] = array(
+                $data['samples'][] = [
                     'name' => $metaData['name'],
-                    'labelNames' => array(),
+                    'labelNames' => [],
                     'labelValues' => $this->decodeLabelValues($labelValues),
                     'value' => $value['value']
-                );
+                ];
             }
             $this->sortSamples($data['samples']);
             $counters[] = new MetricFamilySamples($data);
@@ -177,24 +176,24 @@ class APC implements Adapter
      */
     private function collectGauges()
     {
-        $gauges = array();
+        $gauges = [];
         foreach (new \APCUIterator('/^prom:gauge:.*:meta/') as $gauge) {
             $metaData = json_decode($gauge['value'], true);
-            $data = array(
+            $data = [
                 'name' => $metaData['name'],
                 'help' => $metaData['help'],
                 'type' => $metaData['type'],
                 'labelNames' => $metaData['labelNames'],
-            );
+            ];
             foreach (new \APCUIterator('/^prom:gauge:' . $metaData['name'] . ':.*:value/') as $value) {
                 $parts = explode(':', $value['key']);
                 $labelValues = $parts[3];
-                $data['samples'][] = array(
+                $data['samples'][] = [
                     'name' => $metaData['name'],
-                    'labelNames' => array(),
+                    'labelNames' => [],
                     'labelValues' => $this->decodeLabelValues($labelValues),
                     'value' => $this->fromInteger($value['value'])
-                );
+                ];
             }
 
             $this->sortSamples($data['samples']);
@@ -208,21 +207,21 @@ class APC implements Adapter
      */
     private function collectHistograms()
     {
-        $histograms = array();
+        $histograms = [];
         foreach (new \APCUIterator('/^prom:histogram:.*:meta/') as $histogram) {
             $metaData = json_decode($histogram['value'], true);
-            $data = array(
+            $data = [
                 'name' => $metaData['name'],
                 'help' => $metaData['help'],
                 'type' => $metaData['type'],
                 'labelNames' => $metaData['labelNames'],
                 'buckets' => $metaData['buckets']
-            );
+            ];
 
             // Add the Inf bucket so we can compute it later on
             $data['buckets'][] = '+Inf';
 
-            $histogramBuckets = array();
+            $histogramBuckets = [];
             foreach (new \APCUIterator('/^prom:histogram:' . $metaData['name'] . ':.*:value/') as $value) {
                 $parts = explode(':', $value['key']);
                 $labelValues = $parts[3];
@@ -240,39 +239,38 @@ class APC implements Adapter
                 foreach ($data['buckets'] as $bucket) {
                     $bucket = (string) $bucket;
                     if (!isset($histogramBuckets[$labelValues][$bucket])) {
-                        $data['samples'][] = array(
+                        $data['samples'][] = [
                             'name' => $metaData['name'] . '_bucket',
-                            'labelNames' => array('le'),
-                            'labelValues' => array_merge($decodedLabelValues, array($bucket)),
+                            'labelNames' => ['le'],
+                            'labelValues' => array_merge($decodedLabelValues, [$bucket]),
                             'value' => $acc
-                        );
+                        ];
                     } else {
                         $acc += $histogramBuckets[$labelValues][$bucket];
-                        $data['samples'][] = array(
+                        $data['samples'][] = [
                             'name' => $metaData['name'] . '_' . 'bucket',
-                            'labelNames' => array('le'),
-                            'labelValues' => array_merge($decodedLabelValues, array($bucket)),
+                            'labelNames' => ['le'],
+                            'labelValues' => array_merge($decodedLabelValues, [$bucket]),
                             'value' => $acc
-                        );
+                        ];
                     }
                 }
 
                 // Add the count
-                $data['samples'][] = array(
+                $data['samples'][] = [
                     'name' => $metaData['name'] . '_count',
-                    'labelNames' => array(),
+                    'labelNames' => [],
                     'labelValues' => $decodedLabelValues,
                     'value' => $acc
-                );
+                ];
 
                 // Add the sum
-                $data['samples'][] = array(
+                $data['samples'][] = [
                     'name' => $metaData['name'] . '_sum',
-                    'labelNames' => array(),
+                    'labelNames' => [],
                     'labelValues' => $decodedLabelValues,
                     'value' => $this->fromInteger($histogramBuckets[$labelValues]['sum'])
-                );
-
+                ];
             }
             $histograms[] = new MetricFamilySamples($data);
         }
@@ -299,7 +297,7 @@ class APC implements Adapter
 
     private function sortSamples(array &$samples)
     {
-        usort($samples, function($a, $b){
+        usort($samples, function ($a, $b) {
             return strcmp(implode("", $a['labelValues']), implode("", $b['labelValues']));
         });
     }

@@ -1,7 +1,5 @@
 <?php
-
 namespace Prometheus\Storage;
-
 
 use Prometheus\MetricFamilySamples;
 use RuntimeException;
@@ -97,7 +95,6 @@ class InMemory implements Adapter
                     'labelValues' => $decodedLabelValues,
                     'value' => $histogramBuckets[$labelValues]['sum']
                 ];
-
             }
             $histograms[] = new MetricFamilySamples($data);
         }
@@ -238,8 +235,10 @@ class InMemory implements Adapter
      */
     private function valueKey(array $data)
     {
-        return implode(':',
-            [$data['type'], $data['name'], $this->encodeLabelValues($data['labelValues']), 'value']);
+        return implode(
+            ':',
+            [$data['type'], $data['name'], $this->encodeLabelValues($data['labelValues']), 'value']
+        );
     }
 
     /**

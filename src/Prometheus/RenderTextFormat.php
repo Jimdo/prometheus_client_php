@@ -2,7 +2,6 @@
 
 namespace Prometheus;
 
-
 class RenderTextFormat
 {
     const MIME_TYPE = 'text/plain; version=0.0.4';
@@ -13,12 +12,11 @@ class RenderTextFormat
      */
     public function render(array $metrics)
     {
-        usort($metrics, function(MetricFamilySamples $a, MetricFamilySamples $b)
-        {
+        usort($metrics, function (MetricFamilySamples $a, MetricFamilySamples $b) {
             return strcmp($a->getName(), $b->getName());
         });
 
-        $lines = array();
+        $lines = [];
 
         foreach ($metrics as $metric) {
             $lines[] = "# HELP " . $metric->getName() . " {$metric->getHelp()}";
@@ -32,7 +30,7 @@ class RenderTextFormat
 
     private function renderSample(MetricFamilySamples $metric, Sample $sample)
     {
-        $escapedLabels = array();
+        $escapedLabels = [];
 
         $labelNames = $metric->getLabelNames();
         if ($metric->hasLabelNames() || $sample->hasLabelNames()) {

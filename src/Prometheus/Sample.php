@@ -2,7 +2,6 @@
 
 namespace Prometheus;
 
-
 class Sample
 {
     private $name;

@@ -2,7 +2,6 @@
 
 namespace Prometheus;
 
-
 use Prometheus\Storage\Adapter;
 
 abstract class Collector
@@ -21,7 +20,7 @@ abstract class Collector
      * @param string $help
      * @param array $labels
      */
-    public function __construct(Adapter $storageAdapter, $namespace, $name, $help, $labels = array())
+    public function __construct(Adapter $storageAdapter, $namespace, $name, $help, $labels = [])
     {
         $this->storageAdapter = $storageAdapter;
         $metricName = ($namespace ? $namespace . '_' : '') . $name;
@@ -41,7 +40,7 @@ abstract class Collector
     /**
      * @return string
      */
-    public abstract function getType();
+    abstract public function getType();
 
     public function getName()
     {

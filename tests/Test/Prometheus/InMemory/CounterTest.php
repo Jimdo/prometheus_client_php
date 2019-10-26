@@ -7,7 +7,7 @@ use Prometheus\Storage\InMemory;
 use Test\Prometheus\AbstractCounterTest;
 
 /**
- * See https://prometheus.io/docs/instrumenting/exposition_formats/
+ * @see https://prometheus.io/docs/instrumenting/exposition_formats/
  */
 class CounterTest extends AbstractCounterTest
 {

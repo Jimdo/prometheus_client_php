@@ -15,7 +15,7 @@ class RedisTest extends \PHPUnit_Framework_TestCase
      */
     public function itShouldThrowAnExceptionOnConnectionFailure()
     {
-        $redis = new Redis(array('host' => 'doesntexist.test'));
+        $redis = new Redis(['host' => 'doesntexist.test']);
         $redis->flushRedis();
     }
 
