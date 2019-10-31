@@ -4,12 +4,23 @@
 namespace Prometheus\Storage;
 
 
+use Prometheus\Exception\StorageException;
 use Prometheus\MetricFamilySamples;
 use RuntimeException;
 
 class APC implements Adapter
 {
     const PROMETHEUS_PREFIX = 'prom';
+
+    /**
+     * @throws StorageException
+     */
+    public function __construct()
+    {
+        if (!ini_get('apc.enabled') || ((php_sapi_name() == 'cli') && !ini_get('apc.enable_cli'))) {
+            throw new StorageException('APC is not enabled');
+        }
+    }
 
     /**
      * @return MetricFamilySamples[]
