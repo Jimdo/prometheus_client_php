@@ -1,20 +1,20 @@
 <?php
 
 
-namespace Test\Prometheus\APC;
+namespace Test\Prometheus\APCU;
 
-use Prometheus\Storage\APC;
+use Prometheus\Storage\APCU;
 use Test\Prometheus\AbstractGaugeTest;
 
 /**
  * See https://prometheus.io/docs/instrumenting/exposition_formats/
- * @requires extension apc
+ * @requires extension apcu
  */
 class GaugeTest extends AbstractGaugeTest
 {
     public function configureAdapter()
     {
-        $this->adapter = new APC();
-        $this->adapter->flushAPC();
+        $this->adapter = new APCU();
+        $this->adapter->flushAPCU();
     }
 }
