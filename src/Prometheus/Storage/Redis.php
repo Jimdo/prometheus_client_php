@@ -122,9 +122,9 @@ class Redis implements Adapter
         unset($metaData['value']);
         unset($metaData['labelValues']);
         $this->redis->eval(<<<LUA
-local increment = redis.call('hIncrByFloat', KEYS[1], KEYS[2], ARGV[1])
-redis.call('hIncrBy', KEYS[1], KEYS[3], 1)
-if increment == ARGV[1] then
+redis.call('hIncrByFloat', KEYS[1], KEYS[2], ARGV[1])
+local increment = redis.call('hIncrBy', KEYS[1], KEYS[3], 1)
+if increment == 1 then
     redis.call('hSet', KEYS[1], '__meta', ARGV[2])
     redis.call('sAdd', KEYS[4], KEYS[1])
 end

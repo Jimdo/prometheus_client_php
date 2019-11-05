@@ -177,7 +177,7 @@ abstract class AbstractHistogramTest extends PHPUnit_Framework_TestCase
             array(),
             array(0.1, 0.2, 0.3)
         );
-        $histogram->observe(0.11);
+        $histogram->observe(1343.11);
         $histogram->observe(0.3);
         $this->assertThat(
             $this->adapter->collect(),
@@ -200,13 +200,13 @@ abstract class AbstractHistogramTest extends PHPUnit_Framework_TestCase
                                     'name' => 'test_some_metric_bucket',
                                     'labelNames' => array('le'),
                                     'labelValues' => array(0.2),
-                                    'value' => 1,
+                                    'value' => 0,
                                 ),
                                 array(
                                     'name' => 'test_some_metric_bucket',
                                     'labelNames' => array('le'),
                                     'labelValues' => array(0.3),
-                                    'value' => 2,
+                                    'value' => 1,
                                 ),
                                 array(
                                     'name' => 'test_some_metric_bucket',
@@ -224,7 +224,7 @@ abstract class AbstractHistogramTest extends PHPUnit_Framework_TestCase
                                     'name' => 'test_some_metric_sum',
                                     'labelNames' => array(),
                                     'labelValues' => array(),
-                                    'value' => 0.41,
+                                    'value' => 1343.41000000000000003,
                                 )
                             )
                         )
