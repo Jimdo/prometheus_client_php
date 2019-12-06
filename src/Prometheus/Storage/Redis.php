@@ -41,6 +41,9 @@ class Redis implements Adapter
         if (!isset(self::$defaultOptions['password'])) {
             self::$defaultOptions['password'] = null;
         }
+        if (!isset(self::$defaultOptions['persistent_id'])) {
+            self::$defaultOptions['persistent_id'] = '';
+        }
 
         $this->options = array_merge(self::$defaultOptions, $options);
         $this->redis = new \Redis();
@@ -90,7 +93,7 @@ class Redis implements Adapter
     {
         try {
             if ($this->options['persistent_connections']) {
-                @$this->redis->pconnect($this->options['host'], $this->options['port'], $this->options['timeout']);
+                @$this->redis->pconnect($this->options['host'], $this->options['port'], $this->options['timeout'], $this->options['persistent_id']);
             } else {
                 @$this->redis->connect($this->options['host'], $this->options['port'], $this->options['timeout']);
             }
