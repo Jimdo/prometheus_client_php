@@ -21,7 +21,8 @@ class BlackBoxPushGatewayTest extends PHPUnit_Framework_TestCase
         $counter = $registry->registerCounter('test', 'some_counter', 'it increases', ['type']);
         $counter->incBy(6, ['blue']);
 
-        $pushGateway = new PushGateway('pushgateway:9091');
+        $client = new Client(['base_uri' => 'http://pushgateway:9091/metrics/job/']);
+        $pushGateway = new PushGateway($client);
         $pushGateway->push($registry, 'my_job', array('instance' => 'foo'));
 
         $httpClient = new Client();
