@@ -4,7 +4,7 @@ This project is no longer maintained here. Please go to https://github.com/endcl
 
 # A prometheus client library written in PHP
 
-[![Build Status](https://travis-ci.org/Jimdo/prometheus_client_php.svg?branch=master)](https://travis-ci.org/Jimdo/prometheus_client_php)
+[![CircleCI](https://circleci.com/gh/endclothing/prometheus_client_php/tree/master.svg?style=shield)](https://circleci.com/gh/endclothing/prometheus_client_php/tree/master)
 
 This library uses Redis or APCu to do the client side aggregation.
 If using Redis, we recommend to run a local Redis instance next to your PHP workers.
@@ -15,6 +15,14 @@ Usually PHP worker processes don't share any state.
 You can pick from three adapters.
 Redis, APC or an in memory adapter.
 While the first needs a separate binary running, the second just needs the [APC](https://pecl.php.net/package/APCU) extension to be installed. If you don't need persistent metrics between requests (e.g. a long running cron job or script) the in memory adapter might be suitable to use.
+
+## Installation
+
+Add as [Composer](https://getcomposer.org/) dependency:
+
+```sh
+composer require endclothing/prometheus_client_php
+```
 
 ## Usage
 
@@ -87,13 +95,27 @@ $renderer = new RenderTextFormat();
 $result = $renderer->render($registry->getMetricFamilySamples());
 ```
 
+### Advanced Usage
+
+#### Advanced Histogram Usage
+On passing an empty array for the bucket parameter on instantiation, a set of default buckets will be used instead.
+Whilst this is a good base for a typical web application, there is named constructor to assist in the generation of
+exponential / geometric buckets.
+
+Eg:
+```
+Histogram::exponentialBuckets(0.05, 1.5, 10);
+```
+
+This will start your buckets with a value of 1.5, grow them by a factor of 1.5 per bucket across a set of 10 buckets.
+
 Also look at the [examples](examples).
 
 ## Development
 
 ### Dependencies
 
-* PHP 5.6
+* PHP ^7.3
 * PHP Redis extension
 * PHP APCu extension
 * [Composer](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-osx)

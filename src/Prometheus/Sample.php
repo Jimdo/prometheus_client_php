@@ -1,15 +1,35 @@
 <?php
 
-namespace Prometheus;
+declare(strict_types=1);
 
+namespace Prometheus;
 
 class Sample
 {
+    /**
+     * @var string
+     */
     private $name;
+
+    /**
+     * @var array
+     */
     private $labelNames;
+
+    /**
+     * @var array
+     */
     private $labelValues;
+
+    /**
+     * @var int|double
+     */
     private $value;
 
+    /**
+     * Sample constructor.
+     * @param array $data
+     */
     public function __construct(array $data)
     {
         $this->name = $data['name'];
@@ -21,7 +41,7 @@ class Sample
     /**
      * @return string
      */
-    public function getName()
+    public function getName(): string
     {
         return $this->name;
     }
@@ -29,7 +49,7 @@ class Sample
     /**
      * @return array
      */
-    public function getLabelNames()
+    public function getLabelNames(): array
     {
         return (array)$this->labelNames;
     }
@@ -37,7 +57,7 @@ class Sample
     /**
      * @return array
      */
-    public function getLabelValues()
+    public function getLabelValues(): array
     {
         return (array)$this->labelValues;
     }
@@ -45,15 +65,15 @@ class Sample
     /**
      * @return int|double
      */
-    public function getValue()
+    public function getValue(): string
     {
-        return $this->value;
+        return (string) $this->value;
     }
 
     /**
      * @return bool
      */
-    public function hasLabelNames()
+    public function hasLabelNames(): bool
     {
         return !empty($this->labelNames);
     }

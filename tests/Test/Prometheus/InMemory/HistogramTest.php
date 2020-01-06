@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Test\Prometheus\InMemory;
 
 use Prometheus\Storage\InMemory;
@@ -18,4 +17,3 @@ class HistogramTest extends AbstractHistogramTest
         $this->adapter->flushMemory();
     }
 }
-

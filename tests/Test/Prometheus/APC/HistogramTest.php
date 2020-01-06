@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Test\Prometheus\APC;
 
 use Prometheus\Storage\APC;
@@ -18,4 +17,3 @@ class HistogramTest extends AbstractHistogramTest
         $this->adapter->flushAPC();
     }
 }
-

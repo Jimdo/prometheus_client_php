@@ -9,11 +9,16 @@ use Test\Prometheus\AbstractCounterTest;
  * See https://prometheus.io/docs/instrumenting/exposition_formats/
  * @requires extension redis
  */
-class CounterTest extends AbstractCounterTest
+class CounterWithPrefixTest extends AbstractCounterTest
 {
     public function configureAdapter()
     {
-        $this->adapter = new Redis(['host' => REDIS_HOST]);
+        $connection = new \Redis();
+        $connection->connect(REDIS_HOST);
+
+        $connection->setOption(\Redis::OPT_PREFIX, 'prefix:');
+
+        $this->adapter = Redis::fromExistingConnection($connection);
         $this->adapter->flushRedis();
     }
 }
