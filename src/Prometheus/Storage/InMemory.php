@@ -41,7 +41,8 @@ class InMemory implements Adapter
                 'help' => $metaData['help'],
                 'type' => $metaData['type'],
                 'labelNames' => $metaData['labelNames'],
-                'buckets' => $metaData['buckets']
+                'buckets' => $metaData['buckets'],
+                'samples' => array(),
             ];
 
             // Add the Inf bucket so we can compute it later on
@@ -114,6 +115,7 @@ class InMemory implements Adapter
                 'help' => $metaData['help'],
                 'type' => $metaData['type'],
                 'labelNames' => $metaData['labelNames'],
+                'samples' => array(),
             ];
             foreach ($metric['samples'] as $key => $value) {
                 $parts = explode(':', $key);
