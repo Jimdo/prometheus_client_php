@@ -19,7 +19,7 @@ class CollectorRegistry
     /**
      * @var Adapter
      */
-    private $storageAdapter;
+    private $adapter;
     /**
      * @var Gauge[]
      */
@@ -33,9 +33,9 @@ class CollectorRegistry
      */
     private $histograms = array();
 
-    public function __construct(Adapter $redisAdapter)
+    public function __construct(Adapter $adapter)
     {
-        $this->storageAdapter = $redisAdapter;
+        $this->adapter = $adapter;
     }
 
     /**
@@ -54,7 +54,7 @@ class CollectorRegistry
      */
     public function getMetricFamilySamples()
     {
-        return $this->storageAdapter->collect();
+        return $this->adapter->collect();
     }
 
     /**
@@ -72,7 +72,7 @@ class CollectorRegistry
             throw new MetricsRegistrationException("Metric already registered");
         }
         $this->gauges[$metricIdentifier] = new Gauge(
-            $this->storageAdapter,
+            $this->adapter,
             $namespace,
             $name,
             $help,
@@ -128,7 +128,7 @@ class CollectorRegistry
             throw new MetricsRegistrationException("Metric already registered");
         }
         $this->counters[$metricIdentifier] = new Counter(
-            $this->storageAdapter,
+            $this->adapter,
             $namespace,
             $name,
             $help,
@@ -185,7 +185,7 @@ class CollectorRegistry
             throw new MetricsRegistrationException("Metric already registered");
         }
         $this->histograms[$metricIdentifier] = new Histogram(
-            $this->storageAdapter,
+            $this->adapter,
             $namespace,
             $name,
             $help,
