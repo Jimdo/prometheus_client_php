@@ -12,6 +12,19 @@ class InMemory implements Adapter
     private $counters = [];
     private $gauges = [];
     private $histograms = [];
+    private $initialized = false;
+
+    /**
+     * @return boolean
+     */
+    public function initialized()
+    {
+        if(!$this->initialized){
+            $this->initialized = true;
+            return false;
+        }
+        return $this->initialized;
+    }
 
     /**
      * @return MetricFamilySamples[]
@@ -29,6 +42,7 @@ class InMemory implements Adapter
         $this->counters = [];
         $this->gauges = [];
         $this->histograms = [];
+        $this->initialized = false;
     }
 
     private function collectHistograms()
